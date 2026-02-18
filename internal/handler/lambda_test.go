@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"policy-inference-decider/internal/policy"
 )
 
 const exampleDOT = `digraph { start [result=""]; ok [result="approved=true"]; no [result="approved=false"]; start -> ok [cond="age>=18"]; start -> no [cond="age<18"]; }`
@@ -19,6 +21,8 @@ const dotWithCycle = `digraph { start [result=""]; a [result="done=true"]; start
 
 const dotWithInvalidCond = `digraph { start [result=""]; end [result="x=1"]; start -> end [cond="invalid!!!"]; }`
 
+const policyChallengeDOT = `digraph Policy { start [result=""] approved [result="approved=true,segment=prime"] rejected [result="approved=false"] review [result="approved=false,segment=manual"] start -> approved [cond="age>=18 && score>700"] start -> review [cond="age>=18 && score<=700"] start -> rejected [cond="age<18"] }`
+
 type inferScenario struct {
 	request  events.APIGatewayProxyRequest
 	response events.APIGatewayProxyResponse
@@ -28,35 +32,23 @@ type inferScenario struct {
 
 func TestInfer(t *testing.T) {
 	validRequestAge20 := events.APIGatewayProxyRequest{
-		Body: mustMarshal(map[string]any{
-			"policy_dot": exampleDOT,
-			"input":      map[string]any{"age": 20},
-		}),
+		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 20}}),
 	}
 	validRequestAge15 := events.APIGatewayProxyRequest{
-		Body: mustMarshal(map[string]any{
-			"policy_dot": exampleDOT,
-			"input":      map[string]any{"age": 15},
-		}),
+		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 15}}),
 	}
 	invalidBodyRequest := events.APIGatewayProxyRequest{Body: "invalid"}
 	requestDotNoStart := events.APIGatewayProxyRequest{
-		Body: mustMarshal(map[string]any{
-			"policy_dot": dotNoStart,
-			"input":      map[string]any{"x": 1},
-		}),
+		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotNoStart, Input: map[string]any{"x": 1}}),
 	}
 	requestWithCycle := events.APIGatewayProxyRequest{
-		Body: mustMarshal(map[string]any{
-			"policy_dot": dotWithCycle,
-			"input":      map[string]any{"x": 1},
-		}),
+		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotWithCycle, Input: map[string]any{"x": 1}}),
 	}
 	requestInvalidCond := events.APIGatewayProxyRequest{
-		Body: mustMarshal(map[string]any{
-			"policy_dot": dotWithInvalidCond,
-			"input":      map[string]any{"x": 1},
-		}),
+		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotWithInvalidCond, Input: map[string]any{"x": 1}}),
+	}
+	requestChallengePolicy := events.APIGatewayProxyRequest{
+		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: policyChallengeDOT, Input: map[string]any{"age": 25, "score": 720}}),
 	}
 
 	testCases := map[string]func(t *testing.T){
@@ -95,6 +87,12 @@ func TestInfer(t *testing.T) {
 			s.givenARequest(requestInvalidCond)
 			s.whenInferIsExecuted()
 			s.thenInternalErrorWithErrorCode(t, CodeInternalError)
+		},
+		"challenge example - Policy graph with age 25 score 720 returns approved and segment prime": func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(requestChallengePolicy)
+			s.whenInferIsExecuted()
+			s.thenStatusOKAndOutputEquals(t, map[string]any{"age": float64(25), "score": float64(720), "approved": true, "segment": "prime"})
 		},
 	}
 
@@ -175,7 +173,17 @@ func (s *inferScenario) thenInternalErrorWithErrorCode(t *testing.T, wantCode st
 	assert.Equal(t, wantCode, apiErr.Error)
 }
 
-func mustMarshal(v map[string]any) string {
-	b, _ := json.Marshal(v)
+func (s *inferScenario) thenStatusOKAndOutputEquals(t *testing.T, wantOutput map[string]any) {
+	require.NoError(t, s.err)
+	assert.Equal(t, http.StatusOK, s.response.StatusCode)
+	var out struct {
+		Output map[string]any `json:"output"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(s.response.Body), &out))
+	assert.Equal(t, wantOutput, out.Output)
+}
+
+func bodyFromInferRequest(r policy.InferRequest) string {
+	b, _ := json.Marshal(r)
 	return string(b)
 }
