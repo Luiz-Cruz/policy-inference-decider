@@ -17,6 +17,8 @@ const dotNoStart = `digraph { foo [result=""]; bar [result="x=1"]; foo -> bar [c
 
 const dotWithCycle = `digraph { start [result=""]; a [result="done=true"]; start -> a [cond="x==1"]; a -> a [cond="x==1"]; }`
 
+const dotWithInvalidCond = `digraph { start [result=""]; end [result="x=1"]; start -> end [cond="invalid!!!"]; }`
+
 type inferScenario struct {
 	request  events.APIGatewayProxyRequest
 	response events.APIGatewayProxyResponse
@@ -47,6 +49,12 @@ func TestInfer(t *testing.T) {
 	requestWithCycle := events.APIGatewayProxyRequest{
 		Body: mustMarshal(map[string]any{
 			"policy_dot": dotWithCycle,
+			"input":      map[string]any{"x": 1},
+		}),
+	}
+	requestInvalidCond := events.APIGatewayProxyRequest{
+		Body: mustMarshal(map[string]any{
+			"policy_dot": dotWithInvalidCond,
 			"input":      map[string]any{"x": 1},
 		}),
 	}
@@ -81,6 +89,12 @@ func TestInfer(t *testing.T) {
 			s.givenARequest(requestWithCycle)
 			s.whenInferIsExecuted()
 			s.thenStatusOKWithDoneTrue(t)
+		},
+		"internal error - execute returns error when condition evaluation fails": func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(requestInvalidCond)
+			s.whenInferIsExecuted()
+			s.thenInternalErrorWithErrorCode(t, CodeInternalError)
 		},
 	}
 
@@ -151,6 +165,14 @@ func (s *inferScenario) thenStatusOKWithDoneTrue(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal([]byte(s.response.Body), &out))
 	assert.Equal(t, true, out.Output["done"])
+}
+
+func (s *inferScenario) thenInternalErrorWithErrorCode(t *testing.T, wantCode string) {
+	require.NoError(t, s.err)
+	assert.Equal(t, http.StatusInternalServerError, s.response.StatusCode)
+	var apiErr APIError
+	require.NoError(t, json.Unmarshal([]byte(s.response.Body), &apiErr))
+	assert.Equal(t, wantCode, apiErr.Error)
 }
 
 func mustMarshal(v map[string]any) string {

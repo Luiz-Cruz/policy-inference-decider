@@ -7,7 +7,10 @@ func Execute(g *Graph, input map[string]any) (map[string]any, error) {
 	for {
 		applyNodeResult(g.Nodes[current], out)
 		visited[current] = true
-		next := findNextNode(current, g, out)
+		next, err := findNextNode(current, g, out)
+		if err != nil {
+			return nil, err
+		}
 		if next == "" || visited[next] {
 			break
 		}
@@ -31,16 +34,19 @@ func applyNodeResult(node *Node, out map[string]any) {
 	_ = ApplyResult(node.Result, out)
 }
 
-func findNextNode(current string, g *Graph, vars map[string]any) string {
+func findNextNode(current string, g *Graph, vars map[string]any) (string, error) {
 	for _, e := range g.Edges {
 		if e.From != current {
 			continue
 		}
 		ok, err := EvalCondition(e.Cond, vars)
-		if err != nil || !ok {
+		if err != nil {
+			return "", err
+		}
+		if !ok {
 			continue
 		}
-		return e.To
+		return e.To, nil
 	}
-	return ""
+	return "", nil
 }
