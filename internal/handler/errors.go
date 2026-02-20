@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -51,6 +50,11 @@ func errorFromParseDOT(err error) (code int, errorCode, message string, cause []
 	if errors.Is(err, policy.ErrNoStartNode) {
 		return http.StatusBadRequest, CodePolicyNoStartNode, err.Error(), nil
 	}
+
+	if errors.Is(err, policy.ErrInvalidPolicyDot) {
+		return http.StatusBadRequest, CodeInvalidPolicyDOT, err.Error(), nil
+	}
+
 	return http.StatusBadRequest, CodeInvalidPolicyDOT, err.Error(), nil
 }
 
@@ -60,7 +64,7 @@ func errorFromBindJSON(err error) (code int, errorCode, message string, cause []
 
 type ErrorMapper func(err error) (code int, errorCode, message string, cause []any)
 
-func Handle(ctx context.Context, err error, mapErr ErrorMapper) events.APIGatewayProxyResponse {
+func Handle(err error, mapErr ErrorMapper) events.APIGatewayProxyResponse {
 	code, errorCode, message, cause := mapErr(err)
 	return jsonErrorResponse(code, errorCode, message, cause)
 }
