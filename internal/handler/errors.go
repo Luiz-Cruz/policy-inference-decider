@@ -21,15 +21,13 @@ type APIError struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
 	Status  int    `json:"status"`
-	Cause   []any  `json:"cause,omitempty"`
 }
 
-func jsonErrorResponse(code int, errorCode, message string, cause []any) events.APIGatewayProxyResponse {
+func jsonErrorResponse(code int, errorCode, message string) events.APIGatewayProxyResponse {
 	body := APIError{
 		Error:   errorCode,
 		Message: message,
 		Status:  code,
-		Cause:   cause,
 	}
 	b, _ := json.Marshal(body)
 	return events.APIGatewayProxyResponse{
@@ -39,32 +37,27 @@ func jsonErrorResponse(code int, errorCode, message string, cause []any) events.
 	}
 }
 
-func errorFromPolicy(err error) (code int, errorCode, message string, cause []any) {
+func errorFromPolicy(err error) (code int, errorCode, message string) {
 	if errors.Is(err, policy.ErrNoStartNode) {
-		return http.StatusBadRequest, CodePolicyNoStartNode, err.Error(), nil
+		return http.StatusBadRequest, CodePolicyNoStartNode, err.Error()
 	}
-	return http.StatusInternalServerError, CodeInternalError, "An internal error occurred.", nil
+	return http.StatusInternalServerError, CodeInternalError, "An internal error occurred."
 }
 
-func errorFromParseDOT(err error) (code int, errorCode, message string, cause []any) {
+func errorFromParseDOT(err error) (code int, errorCode, message string) {
 	if errors.Is(err, policy.ErrNoStartNode) {
-		return http.StatusBadRequest, CodePolicyNoStartNode, err.Error(), nil
+		return http.StatusBadRequest, CodePolicyNoStartNode, err.Error()
 	}
-
-	if errors.Is(err, policy.ErrInvalidPolicyDot) {
-		return http.StatusBadRequest, CodeInvalidPolicyDOT, err.Error(), nil
-	}
-
-	return http.StatusBadRequest, CodeInvalidPolicyDOT, err.Error(), nil
+	return http.StatusBadRequest, CodeInvalidPolicyDOT, err.Error()
 }
 
-func errorFromBindJSON(err error) (code int, errorCode, message string, cause []any) {
-	return http.StatusBadRequest, CodeInvalidRequestBody, err.Error(), nil
+func errorFromBindJSON(err error) (code int, errorCode, message string) {
+	return http.StatusBadRequest, CodeInvalidRequestBody, err.Error()
 }
 
-type ErrorMapper func(err error) (code int, errorCode, message string, cause []any)
+type ErrorMapper func(err error) (code int, errorCode, message string)
 
 func Handle(err error, mapErr ErrorMapper) events.APIGatewayProxyResponse {
-	code, errorCode, message, cause := mapErr(err)
-	return jsonErrorResponse(code, errorCode, message, cause)
+	code, errorCode, message := mapErr(err)
+	return jsonErrorResponse(code, errorCode, message)
 }
