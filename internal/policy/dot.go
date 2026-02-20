@@ -8,21 +8,22 @@ import (
 )
 
 func ParseDOT(dot string) (*Graph, error) {
-	parsed, err := gographviz.ParseString(dot)
+	astGraph, err := gographviz.ParseString(dot)
 	if err != nil {
 		return nil, err
 	}
-	nodes, edges := buildGraphFromAST(parsed)
+
+	nodes, edges := buildGraphFromAST(astGraph)
 	if err = validateHasStart(nodes); err != nil {
 		return nil, err
 	}
 	return &Graph{Nodes: nodes, Edges: edges, Start: "start"}, nil
 }
 
-func buildGraphFromAST(parsed *ast.Graph) (map[string]*Node, []*Edge) {
+func buildGraphFromAST(astGraph *ast.Graph) (map[string]*Node, []*Edge) {
 	nodes := make(map[string]*Node)
 	var edges []*Edge
-	for _, stmt := range parsed.StmtList {
+	for _, stmt := range astGraph.StmtList {
 		if nodeStmt, ok := stmt.(*ast.NodeStmt); ok {
 			n := nodeFromStmt(nodeStmt)
 			nodes[n.ID] = n
