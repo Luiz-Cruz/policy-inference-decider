@@ -51,54 +51,56 @@ func TestInfer(t *testing.T) {
 		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: policyChallengeDOT, Input: map[string]any{"age": 25, "score": 720}}),
 	}
 
-	testCases := map[string]func(t *testing.T){
-		"success - approved true when age >= 18": func(t *testing.T) {
+	testCases := map[string]struct {
+		run func(t *testing.T)
+	}{
+		"success - approved true when age >= 18": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(validRequestAge20)
 			s.whenInferIsExecuted()
 			s.thenStatusOKAndApprovedTrue(t)
-		},
-		"success - approved false when age < 18": func(t *testing.T) {
+		}},
+		"success - approved false when age < 18": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(validRequestAge15)
 			s.whenInferIsExecuted()
 			s.thenStatusOKAndApprovedFalse(t)
-		},
-		"bad request - invalid JSON body returns APIError format": func(t *testing.T) {
+		}},
+		"bad request - invalid JSON body returns APIError format": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(invalidBodyRequest)
 			s.whenInferIsExecuted()
 			s.thenBadRequestWithAPIError(t)
-		},
-		"bad request - DOT without start node returns policy_no_start_node": func(t *testing.T) {
+		}},
+		"bad request - DOT without start node returns policy_no_start_node": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(requestDotNoStart)
 			s.whenInferIsExecuted()
 			s.thenBadRequestWithErrorCode(t, CodePolicyNoStartNode)
-		},
-		"success - graph with cycle terminates and returns output": func(t *testing.T) {
+		}},
+		"success - graph with cycle terminates and returns output": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(requestWithCycle)
 			s.whenInferIsExecuted()
 			s.thenStatusOKWithDoneTrue(t)
-		},
-		"internal error - execute returns error when condition evaluation fails": func(t *testing.T) {
+		}},
+		"internal error - execute returns error when condition evaluation fails": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(requestInvalidCond)
 			s.whenInferIsExecuted()
 			s.thenInternalErrorWithErrorCode(t, CodeInternalError)
-		},
-		"challenge example - Policy graph with age 25 score 720 returns approved and segment prime": func(t *testing.T) {
+		}},
+		"challenge example - Policy graph with age 25 score 720 returns approved and segment prime": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(requestChallengePolicy)
 			s.whenInferIsExecuted()
 			s.thenStatusOKAndOutputEquals(t, map[string]any{"age": float64(25), "score": float64(720), "approved": true, "segment": "prime"})
-		},
+		}},
 	}
 
 	t.Parallel()
 	for name, tc := range testCases {
-		t.Run(name, tc)
+		t.Run(name, tc.run)
 	}
 }
 
