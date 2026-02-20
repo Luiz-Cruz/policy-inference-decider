@@ -10,7 +10,7 @@ import (
 func ParseDOT(dot string) (*Graph, error) {
 	astGraph, err := gographviz.ParseString(dot)
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidPolicyDot
 	}
 
 	nodes, edges := buildGraphFromAST(astGraph)
