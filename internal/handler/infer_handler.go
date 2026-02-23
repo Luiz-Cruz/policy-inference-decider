@@ -13,10 +13,10 @@ import (
 )
 
 type Handler struct {
-	policy policy.PolicyInferrer
+	policy policy.Inferrer
 }
 
-func NewInferHandler(policy policy.PolicyInferrer) *Handler {
+func NewInferHandler(policy policy.Inferrer) *Handler {
 	return &Handler{policy: policy}
 }
 

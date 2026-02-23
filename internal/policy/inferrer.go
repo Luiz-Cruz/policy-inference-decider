@@ -9,7 +9,7 @@ type (
 	Parser interface {
 		Parse(ctx context.Context, dot string) (*Graph, error)
 	}
-	PolicyInferrer interface {
+	Inferrer interface {
 		Parse(ctx context.Context, dot string) (*Graph, error)
 		Process(ctx context.Context, graph *Graph, input map[string]any) (InferResponse, error)
 	}
@@ -27,7 +27,7 @@ func (p *policyExecutor) Process(ctx context.Context, graph *Graph, input map[st
 	return p.executor.Process(ctx, graph, input)
 }
 
-func NewPolicyExecutor(exec Executor, parser Parser) PolicyInferrer {
+func NewPolicyExecutor(exec Executor, parser Parser) Inferrer {
 	return &policyExecutor{
 		executor: exec,
 		parser:   parser,
