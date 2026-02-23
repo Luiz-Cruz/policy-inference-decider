@@ -13,7 +13,7 @@ func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	}
 	expr, err := govaluate.NewEvaluableExpression(cond)
 	if err != nil {
-		return false, err
+		return false, ErrInvalidCondition
 	}
 	evars := make(map[string]interface{})
 	for k, v := range vars {
@@ -21,7 +21,7 @@ func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	}
 	result, err := expr.Evaluate(evars)
 	if err != nil {
-		return false, err
+		return false, ErrInvalidCondition
 	}
 	b, ok := result.(bool)
 	if !ok {
@@ -42,11 +42,11 @@ func parseKeyValue(pair string) (key, value string, ok bool) {
 }
 
 func parseResultValue(valStr string) any {
-	if v, err := strconv.ParseBool(valStr); err == nil {
-		return v
+	if value, err := strconv.ParseBool(valStr); err == nil {
+		return value
 	}
-	if v, err := strconv.ParseFloat(valStr, 64); err == nil {
-		return v
+	if value, err := strconv.ParseFloat(valStr, 64); err == nil {
+		return value
 	}
 	return valStr
 }

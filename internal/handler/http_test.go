@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"policy-inference-decider/internal/apierror"
 	"policy-inference-decider/internal/policy"
 )
 
@@ -27,6 +28,7 @@ const policyChallengeDOT = `digraph Policy { start [result=""] approved [result=
 
 type (
 	inferScenario struct {
+		handler  *Handler
 		request  events.APIGatewayProxyRequest
 		response events.APIGatewayProxyResponse
 		err      error
@@ -80,13 +82,13 @@ func TestInfer(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(invalidBodyRequest)
 			s.whenInferIsExecuted()
-			s.thenBadRequestWithAPIError(t, http.StatusBadRequest, CodeInvalidRequestBody)
+			s.thenBadRequestWithAPIError(t, http.StatusBadRequest, apierror.CodeInvalidRequestBody)
 		}},
 		"bad request - DOT without start node returns policy_no_start_node": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(requestDotNoStart)
 			s.whenInferIsExecuted()
-			s.thenBadRequestWithErrorCode(t, CodePolicyNoStartNode)
+			s.thenBadRequestWithErrorCode(t, apierror.CodePolicyNoStartNode)
 		}},
 		"success - graph with cycle terminates and returns output": {run: func(t *testing.T) {
 			s := startInferScenario()
@@ -94,17 +96,17 @@ func TestInfer(t *testing.T) {
 			s.whenInferIsExecuted()
 			s.thenStatusOKWithOutput(t, inferResponseBody{Output: map[string]any{"x": float64(1), "done": true}})
 		}},
-		"internal error - execute returns error when condition evaluation fails": {run: func(t *testing.T) {
+		"bad request - invalid condition in edge returns invalid_condition": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(requestInvalidCond)
 			s.whenInferIsExecuted()
-			s.thenInternalErrorWithErrorCode(t, CodeInternalError)
+			s.thenBadRequestWithErrorCode(t, apierror.CodeInvalidCondition)
 		}},
 		"bad request - invalid DOT format returns invalid_policy_dot": {run: func(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(requestInvalidFormat)
 			s.whenInferIsExecuted()
-			s.thenBadRequestWithAPIError(t, http.StatusBadRequest, CodeInvalidPolicyDOT)
+			s.thenBadRequestWithAPIError(t, http.StatusBadRequest, apierror.CodeInvalidPolicyDOT)
 		}},
 		"challenge example - Policy graph with age 25 score 720 returns approved and segment prime": {run: func(t *testing.T) {
 			s := startInferScenario()
@@ -121,7 +123,7 @@ func TestInfer(t *testing.T) {
 }
 
 func startInferScenario() *inferScenario {
-	return &inferScenario{}
+	return &inferScenario{handler: New(policy.NewPolicyExecutor(&policy.GraphExecutor{}))}
 }
 
 func (s *inferScenario) givenARequest(req events.APIGatewayProxyRequest) {
@@ -130,7 +132,7 @@ func (s *inferScenario) givenARequest(req events.APIGatewayProxyRequest) {
 }
 
 func (s *inferScenario) whenInferIsExecuted() {
-	s.response, s.err = Infer(s.ctx, s.request)
+	s.response, s.err = s.handler.Infer(s.ctx, s.request)
 }
 
 func (s *inferScenario) thenStatusOKWithOutput(t *testing.T, want inferResponseBody) {

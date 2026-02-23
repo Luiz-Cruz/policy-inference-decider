@@ -1,6 +1,10 @@
 package policy
 
-func Execute(graph *Graph, input map[string]any) (map[string]any, error) {
+import "context"
+
+type GraphExecutor struct{}
+
+func (GraphExecutor) Process(ctx context.Context, graph *Graph, input map[string]any) (InferResponse, error) {
 	out := copyInputToOutput(input)
 	visited := make(map[string]bool)
 	current := graph.Start
@@ -11,14 +15,14 @@ func Execute(graph *Graph, input map[string]any) (map[string]any, error) {
 		visited[current] = true
 		next, err := findNextNode(current, graph, out)
 		if err != nil {
-			return nil, err
+			return InferResponse{}, err
 		}
 		if next == "" || visited[next] {
 			break
 		}
 		current = next
 	}
-	return out, nil
+	return InferResponse{Output: out}, nil
 }
 
 func copyInputToOutput(input map[string]any) map[string]any {

@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,9 @@ func (s *executeScenario) whenExecuteIsExecuted() {
 		s.err = err
 		return
 	}
-	s.out, s.err = Execute(s.graph, s.vars)
+	var resp InferResponse
+	resp, s.err = GraphExecutor{}.Process(context.Background(), s.graph, s.vars)
+	s.out = resp.Output
 }
 
 func (s *executeScenario) thenOutputHasAgeAndApproved(age int, approved bool) {
