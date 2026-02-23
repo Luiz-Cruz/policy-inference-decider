@@ -133,7 +133,7 @@ func (s *applyResultScenario) givenResultAndVars(result string, vars map[string]
 }
 
 func (s *applyResultScenario) whenApplyResultIsExecuted() {
-	s.err = ApplyResult(s.result, s.vars)
+	ApplyResult(s.result, s.vars)
 }
 
 func (s *applyResultScenario) thenVarsUnchanged() {
