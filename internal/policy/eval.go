@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Knetic/govaluate"
+	"github.com/casbin/govaluate"
 )
 
 func EvalCondition(cond string, vars map[string]any) (bool, error) {
@@ -30,10 +30,20 @@ func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	return b, nil
 }
 
-func ApplyResult(result string, vars map[string]any) error {
+func parseResultValue(valStr string) any {
+	if v, err := strconv.ParseBool(valStr); err == nil {
+		return v
+	}
+	if v, err := strconv.ParseFloat(valStr, 64); err == nil {
+		return v
+	}
+	return valStr
+}
+
+func ApplyResult(result string, vars map[string]any) {
 	result = strings.TrimSpace(result)
 	if result == "" {
-		return nil
+		return
 	}
 	pairs := strings.Split(result, ",")
 	for _, pair := range pairs {
@@ -44,15 +54,6 @@ func ApplyResult(result string, vars map[string]any) error {
 		key := strings.TrimSpace(kv[0])
 		valStr := strings.TrimSpace(kv[1])
 		valStr = strings.Trim(valStr, "\"")
-		var val any
-		if v, err := strconv.ParseBool(valStr); err == nil {
-			val = v
-		} else if v, err := strconv.ParseFloat(valStr, 64); err == nil {
-			val = v
-		} else {
-			val = valStr
-		}
-		vars[key] = val
+		vars[key] = parseResultValue(valStr)
 	}
-	return nil
 }
