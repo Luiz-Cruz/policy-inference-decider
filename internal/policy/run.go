@@ -1,13 +1,15 @@
 package policy
 
-func Execute(g *Graph, input map[string]any) (map[string]any, error) {
+func Execute(graph *Graph, input map[string]any) (map[string]any, error) {
 	out := copyInputToOutput(input)
 	visited := make(map[string]bool)
-	current := g.Start
+	current := graph.Start
 	for {
-		applyNodeResult(g.Nodes[current], out)
+		if node := graph.Nodes[current]; node != nil {
+			ApplyResult(node.Result, out)
+		}
 		visited[current] = true
-		next, err := findNextNode(current, g, out)
+		next, err := findNextNode(current, graph, out)
 		if err != nil {
 			return nil, err
 		}
@@ -27,26 +29,20 @@ func copyInputToOutput(input map[string]any) map[string]any {
 	return out
 }
 
-func applyNodeResult(node *Node, out map[string]any) {
-	if node == nil {
-		return
-	}
-	_ = ApplyResult(node.Result, out)
-}
-
-func findNextNode(current string, g *Graph, vars map[string]any) (string, error) {
-	for _, e := range g.Edges {
-		if e.From != current {
+// findNextNode returns the first outgoing edge from current whose condition evaluates to true (deterministic single path).
+func findNextNode(current string, graph *Graph, vars map[string]any) (string, error) {
+	for _, edge := range graph.Edges {
+		if edge.From != current {
 			continue
 		}
-		ok, err := EvalCondition(e.Cond, vars)
+		ok, err := EvalCondition(edge.Cond, vars)
 		if err != nil {
 			return "", err
 		}
 		if !ok {
 			continue
 		}
-		return e.To, nil
+		return edge.To, nil
 	}
 	return "", nil
 }
