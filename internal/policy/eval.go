@@ -30,6 +30,17 @@ func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	return b, nil
 }
 
+func parseKeyValue(pair string) (key, value string, ok bool) {
+	kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+	if len(kv) != 2 {
+		return "", "", false
+	}
+	key = strings.TrimSpace(kv[0])
+	value = strings.TrimSpace(kv[1])
+	value = strings.Trim(value, "\"")
+	return key, value, true
+}
+
 func parseResultValue(valStr string) any {
 	if v, err := strconv.ParseBool(valStr); err == nil {
 		return v
@@ -47,13 +58,10 @@ func ApplyResult(result string, vars map[string]any) {
 	}
 	pairs := strings.Split(result, ",")
 	for _, pair := range pairs {
-		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
-		if len(kv) != 2 {
+		key, valStr, ok := parseKeyValue(pair)
+		if !ok {
 			continue
 		}
-		key := strings.TrimSpace(kv[0])
-		valStr := strings.TrimSpace(kv[1])
-		valStr = strings.Trim(valStr, "\"")
 		vars[key] = parseResultValue(valStr)
 	}
 }
