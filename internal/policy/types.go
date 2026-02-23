@@ -1,5 +1,7 @@
 package policy
 
+const StartNodeID = "start"
+
 type (
 	InferRequest struct {
 		PolicyDOT string         `json:"policy_dot"`
