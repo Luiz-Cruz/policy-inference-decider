@@ -1,23 +1,26 @@
 package policy
 
 import (
+	"context"
 	"strings"
 
 	"github.com/awalterschulze/gographviz"
 	"github.com/awalterschulze/gographviz/ast"
 )
 
-func ParseDOT(dot string) (*Graph, error) {
+type DotParser struct{}
+
+func (DotParser) Parse(ctx context.Context, dot string) (*Graph, error) {
 	astGraph, err := gographviz.ParseString(dot)
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidPolicyDot
 	}
 
 	nodes, edges := buildGraphFromAST(astGraph)
 	if err = validateHasStart(nodes); err != nil {
 		return nil, err
 	}
-	return &Graph{Nodes: nodes, Edges: edges, Start: "start"}, nil
+	return &Graph{Nodes: nodes, Edges: edges, Start: StartNodeID}, nil
 }
 
 func buildGraphFromAST(astGraph *ast.Graph) (map[string]*Node, []*Edge) {
@@ -25,12 +28,12 @@ func buildGraphFromAST(astGraph *ast.Graph) (map[string]*Node, []*Edge) {
 	var edges []*Edge
 	for _, stmt := range astGraph.StmtList {
 		if nodeStmt, ok := stmt.(*ast.NodeStmt); ok {
-			n := nodeFromStmt(nodeStmt)
-			nodes[n.ID] = n
+			node := nodeFromStmt(nodeStmt)
+			nodes[node.ID] = node
 		}
 		if edgeStmt, ok := stmt.(*ast.EdgeStmt); ok {
-			if e, ok := edgeFromStmt(edgeStmt); ok {
-				edges = append(edges, e)
+			if edge, ok := edgeFromStmt(edgeStmt); ok {
+				edges = append(edges, edge)
 			}
 		}
 	}
@@ -76,7 +79,7 @@ func extractCondFromEdgeAttrs(attrs ast.AttrList) string {
 }
 
 func validateHasStart(nodes map[string]*Node) error {
-	if _, hasStart := nodes["start"]; !hasStart {
+	if _, hasStart := nodes[StartNodeID]; !hasStart {
 		return ErrNoStartNode
 	}
 	return nil

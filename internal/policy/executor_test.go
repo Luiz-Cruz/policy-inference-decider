@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -59,12 +60,14 @@ func (s *executeScenario) givenDOTAndVars(dot string, vars map[string]any) {
 
 func (s *executeScenario) whenExecuteIsExecuted() {
 	var err error
-	s.graph, err = ParseDOT(s.dot)
+	s.graph, err = DotParser{}.Parse(context.Background(), s.dot)
 	if err != nil {
 		s.err = err
 		return
 	}
-	s.out, s.err = Execute(s.graph, s.vars)
+	var resp InferResponse
+	resp, s.err = GraphExecutor{}.Process(context.Background(), s.graph, s.vars)
+	s.out = resp.Output
 }
 
 func (s *executeScenario) thenOutputHasAgeAndApproved(age int, approved bool) {

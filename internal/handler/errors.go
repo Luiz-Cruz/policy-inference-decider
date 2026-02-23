@@ -1,66 +1,54 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 
+	"policy-inference-decider/internal/apierror"
 	"policy-inference-decider/internal/policy"
-)
-
-const (
-	CodeInvalidRequestBody = "invalid_request_body"
-	CodeInvalidPolicyDOT   = "invalid_policy_dot"
-	CodePolicyNoStartNode  = "policy_no_start_node"
-	CodeInternalError      = "internal_error"
 )
 
 type APIError struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
 	Status  int    `json:"status"`
-	Cause   []any  `json:"cause,omitempty"`
 }
 
-func jsonErrorResponse(code int, errorCode, message string, cause []any) events.APIGatewayProxyResponse {
-	body := APIError{
-		Error:   errorCode,
-		Message: message,
-		Status:  code,
-		Cause:   cause,
-	}
-	b, _ := json.Marshal(body)
+func jsonErrorResponse(apiError apierror.APIError) events.APIGatewayProxyResponse {
+	responseBody, _ := json.Marshal(apiError)
 	return events.APIGatewayProxyResponse{
-		StatusCode: code,
+		StatusCode: apiError.Status,
 		Headers:    map[string]string{"Content-Type": "application/json"},
-		Body:       string(b),
+		Body:       string(responseBody),
 	}
 }
 
-func errorFromPolicy(err error) (code int, errorCode, message string, cause []any) {
+func errorFromPolicy(err error) apierror.APIError {
 	if errors.Is(err, policy.ErrNoStartNode) {
-		return http.StatusBadRequest, CodePolicyNoStartNode, err.Error(), nil
+		return apierror.NewNoStartNodeError()
 	}
-	return http.StatusInternalServerError, CodeInternalError, "An internal error occurred.", nil
+	if errors.Is(err, policy.ErrInvalidCondition) {
+		return apierror.NewInvalidConditionError()
+	}
+	return apierror.NewInternalError()
 }
 
-func errorFromParseDOT(err error) (code int, errorCode, message string, cause []any) {
+func errorFromParseDOT(err error) apierror.APIError {
 	if errors.Is(err, policy.ErrNoStartNode) {
-		return http.StatusBadRequest, CodePolicyNoStartNode, err.Error(), nil
+		return apierror.NewNoStartNodeError()
 	}
-	return http.StatusBadRequest, CodeInvalidPolicyDOT, err.Error(), nil
+	return apierror.NewInvalidPolicyDotError()
 }
 
-func errorFromBindJSON(err error) (code int, errorCode, message string, cause []any) {
-	return http.StatusBadRequest, CodeInvalidRequestBody, err.Error(), nil
+func errorFromBindJSON(err error) apierror.APIError {
+	return apierror.NewInvalidRequestBodyError()
 }
 
-type ErrorMapper func(err error) (code int, errorCode, message string, cause []any)
+type ErrorMapper func(err error) (apiError apierror.APIError)
 
-func Handle(ctx context.Context, err error, mapErr ErrorMapper) events.APIGatewayProxyResponse {
-	code, errorCode, message, cause := mapErr(err)
-	return jsonErrorResponse(code, errorCode, message, cause)
+func Handle(err error, mapErr ErrorMapper) events.APIGatewayProxyResponse {
+	apiError := mapErr(err)
+	return jsonErrorResponse(apiError)
 }

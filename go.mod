@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/awalterschulze/gographviz v2.0.3+incompatible
+	github.com/casbin/govaluate v1.10.0
 	github.com/stretchr/testify v1.10.0
 )

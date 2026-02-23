@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Knetic/govaluate"
+	"github.com/casbin/govaluate"
 )
 
 func EvalCondition(cond string, vars map[string]any) (bool, error) {
@@ -13,7 +13,7 @@ func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	}
 	expr, err := govaluate.NewEvaluableExpression(cond)
 	if err != nil {
-		return false, err
+		return false, ErrInvalidCondition
 	}
 	evars := make(map[string]interface{})
 	for k, v := range vars {
@@ -21,7 +21,7 @@ func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	}
 	result, err := expr.Evaluate(evars)
 	if err != nil {
-		return false, err
+		return false, ErrInvalidCondition
 	}
 	b, ok := result.(bool)
 	if !ok {
@@ -30,29 +30,38 @@ func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	return b, nil
 }
 
-func ApplyResult(result string, vars map[string]any) error {
+func parseKeyValue(pair string) (key, value string, ok bool) {
+	kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+	if len(kv) != 2 {
+		return "", "", false
+	}
+	key = strings.TrimSpace(kv[0])
+	value = strings.TrimSpace(kv[1])
+	value = strings.Trim(value, "\"")
+	return key, value, true
+}
+
+func parseResultValue(valStr string) any {
+	if value, err := strconv.ParseBool(valStr); err == nil {
+		return value
+	}
+	if value, err := strconv.ParseFloat(valStr, 64); err == nil {
+		return value
+	}
+	return valStr
+}
+
+func ApplyResult(result string, vars map[string]any) {
 	result = strings.TrimSpace(result)
 	if result == "" {
-		return nil
+		return
 	}
 	pairs := strings.Split(result, ",")
 	for _, pair := range pairs {
-		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
-		if len(kv) != 2 {
+		key, valStr, ok := parseKeyValue(pair)
+		if !ok {
 			continue
 		}
-		key := strings.TrimSpace(kv[0])
-		valStr := strings.TrimSpace(kv[1])
-		valStr = strings.Trim(valStr, "\"")
-		var val any
-		if v, err := strconv.ParseBool(valStr); err == nil {
-			val = v
-		} else if v, err := strconv.ParseFloat(valStr, 64); err == nil {
-			val = v
-		} else {
-			val = valStr
-		}
-		vars[key] = val
+		vars[key] = parseResultValue(valStr)
 	}
-	return nil
 }

@@ -7,33 +7,39 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"policy-inference-decider/internal/apierror"
 	"policy-inference-decider/internal/policy"
 )
 
 type errorFromPolicyScenario struct {
-	inputErr     error
-	gotCode      int
-	gotErrorCode string
-	gotMessage   string
-	gotCause     []any
+	inputErr  error
+	gotAPIErr apierror.APIError
 }
 
 func TestErrorFromPolicy(t *testing.T) {
 	errNoStartNode := policy.ErrNoStartNode
 	otherError := errors.New("some execution error")
 
+	errInvalidCondition := policy.ErrInvalidCondition
+
 	testCases := map[string]func(t *testing.T){
 		"error - ErrNoStartNode then returns 400 and policy_no_start_node": func(t *testing.T) {
 			s := startErrorFromPolicyScenario()
 			s.givenAnError(errNoStartNode)
 			s.whenErrorFromPolicyIsCalled()
-			s.thenReturns(t, http.StatusBadRequest, CodePolicyNoStartNode, errNoStartNode.Error(), nil)
+			s.thenReturns(t, http.StatusBadRequest, apierror.CodePolicyNoStartNode, "Policy graph has no start node.")
+		},
+		"error - ErrInvalidCondition then returns 400 and invalid_condition": func(t *testing.T) {
+			s := startErrorFromPolicyScenario()
+			s.givenAnError(errInvalidCondition)
+			s.whenErrorFromPolicyIsCalled()
+			s.thenReturns(t, http.StatusBadRequest, apierror.CodeInvalidCondition, "Invalid condition in policy.")
 		},
 		"error - returns 500 and internal_error": func(t *testing.T) {
 			s := startErrorFromPolicyScenario()
 			s.givenAnError(otherError)
 			s.whenErrorFromPolicyIsCalled()
-			s.thenReturns(t, http.StatusInternalServerError, CodeInternalError, "An internal error occurred.", nil)
+			s.thenReturns(t, http.StatusInternalServerError, apierror.CodeInternalError, "An internal error occurred.")
 		},
 	}
 
@@ -52,24 +58,18 @@ func (s *errorFromPolicyScenario) givenAnError(err error) {
 }
 
 func (s *errorFromPolicyScenario) whenErrorFromPolicyIsCalled() {
-	s.gotCode, s.gotErrorCode, s.gotMessage, s.gotCause = errorFromPolicy(s.inputErr)
+	s.gotAPIErr = errorFromPolicy(s.inputErr)
 }
 
-func (s *errorFromPolicyScenario) thenReturns(t *testing.T, wantCode int, wantErrorCode, wantMessage string, wantCause []any) {
-	assert.Equal(t, wantCode, s.gotCode)
-	assert.Equal(t, wantErrorCode, s.gotErrorCode)
-	assert.Equal(t, wantMessage, s.gotMessage)
-	if wantCause != nil || s.gotCause != nil {
-		assert.Len(t, s.gotCause, len(wantCause))
-	}
+func (s *errorFromPolicyScenario) thenReturns(t *testing.T, wantCode int, wantErrorCode, wantMessage string) {
+	assert.Equal(t, wantCode, s.gotAPIErr.Status)
+	assert.Equal(t, wantErrorCode, s.gotAPIErr.ErrorCode)
+	assert.Equal(t, wantMessage, s.gotAPIErr.Message)
 }
 
 type errorFromParseDOTScenario struct {
-	inputErr     error
-	gotCode      int
-	gotErrorCode string
-	gotMessage   string
-	gotCause     []any
+	inputErr  error
+	gotAPIErr apierror.APIError
 }
 
 func TestErrorFromParseDOT(t *testing.T) {
@@ -81,13 +81,13 @@ func TestErrorFromParseDOT(t *testing.T) {
 			s := startErrorFromParseDOTScenario()
 			s.givenAnError(errNoStartNode)
 			s.whenErrorFromParseDOTIsCalled()
-			s.thenReturns(t, http.StatusBadRequest, CodePolicyNoStartNode, errNoStartNode.Error(), nil)
+			s.thenReturns(t, http.StatusBadRequest, apierror.CodePolicyNoStartNode, "Policy graph has no start node.")
 		},
 		"test when other error then returns 400 and invalid_policy_dot": func(t *testing.T) {
 			s := startErrorFromParseDOTScenario()
 			s.givenAnError(invalidDOTError)
 			s.whenErrorFromParseDOTIsCalled()
-			s.thenReturns(t, http.StatusBadRequest, CodeInvalidPolicyDOT, invalidDOTError.Error(), nil)
+			s.thenReturns(t, http.StatusBadRequest, apierror.CodeInvalidPolicyDOT, "Invalid policy DOT format.")
 		},
 	}
 
@@ -106,14 +106,11 @@ func (s *errorFromParseDOTScenario) givenAnError(err error) {
 }
 
 func (s *errorFromParseDOTScenario) whenErrorFromParseDOTIsCalled() {
-	s.gotCode, s.gotErrorCode, s.gotMessage, s.gotCause = errorFromParseDOT(s.inputErr)
+	s.gotAPIErr = errorFromParseDOT(s.inputErr)
 }
 
-func (s *errorFromParseDOTScenario) thenReturns(t *testing.T, wantCode int, wantErrorCode, wantMessage string, wantCause []any) {
-	assert.Equal(t, wantCode, s.gotCode)
-	assert.Equal(t, wantErrorCode, s.gotErrorCode)
-	assert.Equal(t, wantMessage, s.gotMessage)
-	if wantCause != nil || s.gotCause != nil {
-		assert.Len(t, s.gotCause, len(wantCause))
-	}
+func (s *errorFromParseDOTScenario) thenReturns(t *testing.T, wantCode int, wantErrorCode, wantMessage string) {
+	assert.Equal(t, wantCode, s.gotAPIErr.Status)
+	assert.Equal(t, wantErrorCode, s.gotAPIErr.ErrorCode)
+	assert.Equal(t, wantMessage, s.gotAPIErr.Message)
 }
