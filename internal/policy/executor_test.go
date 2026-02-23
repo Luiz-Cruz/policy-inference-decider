@@ -60,7 +60,7 @@ func (s *executeScenario) givenDOTAndVars(dot string, vars map[string]any) {
 
 func (s *executeScenario) whenExecuteIsExecuted() {
 	var err error
-	s.graph, err = ParseDOT(s.dot)
+	s.graph, err = DotParser{}.Parse(context.Background(), s.dot)
 	if err != nil {
 		s.err = err
 		return

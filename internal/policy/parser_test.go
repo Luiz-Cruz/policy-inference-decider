@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,7 @@ func (s *parseDOTScenario) givenDOT(dot string) {
 }
 
 func (s *parseDOTScenario) whenParseDOTIsExecuted() {
-	s.graph, s.err = ParseDOT(s.dot)
+	s.graph, s.err = DotParser{}.Parse(context.Background(), s.dot)
 }
 
 func (s *parseDOTScenario) thenGraphHasStartAndNodes() {

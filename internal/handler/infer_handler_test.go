@@ -123,7 +123,7 @@ func TestInfer(t *testing.T) {
 }
 
 func startInferScenario() *inferScenario {
-	return &inferScenario{handler: New(policy.NewPolicyExecutor(&policy.GraphExecutor{}))}
+	return &inferScenario{handler: NewInferHandler(policy.NewPolicyExecutor(&policy.GraphExecutor{}, &policy.DotParser{}))}
 }
 
 func (s *inferScenario) givenARequest(req events.APIGatewayProxyRequest) {
@@ -156,14 +156,6 @@ func (s *inferScenario) thenBadRequestWithAPIError(t *testing.T, wantStatus int,
 func (s *inferScenario) thenBadRequestWithErrorCode(t *testing.T, wantCode string) {
 	require.NoError(t, s.err)
 	assert.Equal(t, http.StatusBadRequest, s.response.StatusCode)
-	var apiErr APIError
-	require.NoError(t, json.Unmarshal([]byte(s.response.Body), &apiErr))
-	assert.Equal(t, wantCode, apiErr.Error)
-}
-
-func (s *inferScenario) thenInternalErrorWithErrorCode(t *testing.T, wantCode string) {
-	require.NoError(t, s.err)
-	assert.Equal(t, http.StatusInternalServerError, s.response.StatusCode)
 	var apiErr APIError
 	require.NoError(t, json.Unmarshal([]byte(s.response.Body), &apiErr))
 	assert.Equal(t, wantCode, apiErr.Error)

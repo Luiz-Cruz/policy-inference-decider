@@ -1,13 +1,16 @@
 package policy
 
 import (
+	"context"
 	"strings"
 
 	"github.com/awalterschulze/gographviz"
 	"github.com/awalterschulze/gographviz/ast"
 )
 
-func ParseDOT(dot string) (*Graph, error) {
+type DotParser struct{}
+
+func (DotParser) Parse(ctx context.Context, dot string) (*Graph, error) {
 	astGraph, err := gographviz.ParseString(dot)
 	if err != nil {
 		return nil, ErrInvalidPolicyDot

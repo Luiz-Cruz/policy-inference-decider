@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	policyExecutor := policy.NewPolicyExecutor(&policy.GraphExecutor{})
-	inferHandler := handler.New(policyExecutor)
+	policyExecutor := policy.NewPolicyExecutor(&policy.GraphExecutor{}, &policy.DotParser{})
+	inferHandler := handler.NewInferHandler(policyExecutor)
 	lambda.Start(inferHandler.Infer)
 }
