@@ -1,0 +1,23 @@
+config:
+  target: "https://LAMBDA_FUNCTION_URL"
+  http:
+    pool: 50
+    timeout: 30
+  phases:
+    - duration: 60
+      arrivalRate: 1
+    - duration: 60
+      arrivalRate: 50
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "POST infer 50 RPS"
+    flow:
+      - post:
+          url: "/"
+          json:
+            policy_dot: "digraph { start [result=\"\"]; ok [result=\"approved=true\"]; no [result=\"approved=false\"]; start -> ok [cond=\"age>=18\"]; start -> no [cond=\"age<18\"]; }"
+            input:
+              age: 20

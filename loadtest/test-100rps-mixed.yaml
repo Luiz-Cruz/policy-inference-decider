@@ -1,0 +1,62 @@
+config:
+  target: "https://LAMBDA_FUNCTION_URL"
+  http:
+    pool: 100
+    timeout: 30
+  phases:
+    - duration: 30
+      arrivalRate: 1
+    - duration: 60
+      arrivalRate: 100
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "success"
+    weight: 80
+    flow:
+      - post:
+          url: "/"
+          json:
+            policy_dot: "digraph { start [result=\"\"]; ok [result=\"approved=true\"]; no [result=\"approved=false\"]; start -> ok [cond=\"age>=18\"]; start -> no [cond=\"age<18\"]; }"
+            input:
+              age: 20
+
+  - name: "error - invalid_request_body"
+    weight: 5
+    flow:
+      - post:
+          url: "/"
+          body: "invalid"
+          headers:
+            Content-Type: "application/json"
+
+  - name: "error - invalid_policy_dot"
+    weight: 5
+    flow:
+      - post:
+          url: "/"
+          json:
+            policy_dot: "{"
+            input: {}
+
+  - name: "error - policy_no_start_node"
+    weight: 5
+    flow:
+      - post:
+          url: "/"
+          json:
+            policy_dot: "digraph { foo [result=\"\"]; bar [result=\"x=1\"]; foo -> bar [cond=\"true\"]; }"
+            input:
+              x: 1
+
+  - name: "error - invalid_condition"
+    weight: 5
+    flow:
+      - post:
+          url: "/"
+          json:
+            policy_dot: "digraph { start [result=\"\"]; end [result=\"x=1\"]; start -> end [cond=\"invalid!!!\"]; }"
+            input:
+              x: 1
