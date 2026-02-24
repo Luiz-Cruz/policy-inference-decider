@@ -48,6 +48,12 @@ func TestEvalCondition(t *testing.T) {
 			s.whenEvalConditionIsExecuted()
 			s.thenErrorAndResultIsFalse()
 		}},
+		"non-bool expr result returns false": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("1", map[string]any{})
+			s.whenEvalConditionIsExecuted()
+			s.thenResultIs(false)
+		}},
 	}
 
 	t.Parallel()
@@ -114,6 +120,14 @@ func TestApplyResult(t *testing.T) {
 			s.whenApplyResultIsExecuted()
 			s.thenVarEquals("num", 2.5)
 			s.thenVarEquals("flag", true)
+		}},
+		"malformed pair without equals is skipped": {run: func(t *testing.T) {
+			s := startApplyResultScenario(t)
+			s.givenResultAndVars("a=1, badpair, b=2", map[string]any{})
+			s.whenApplyResultIsExecuted()
+			s.thenVarEquals("a", true)
+			s.thenVarEquals("b", 2.0)
+			assert.Len(s.t, s.vars, 2)
 		}},
 	}
 
