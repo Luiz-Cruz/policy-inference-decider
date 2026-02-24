@@ -7,7 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: prod
     steps:
       - uses: actions/checkout@v4
 
@@ -18,7 +18,7 @@ jobs:
 
       - name: Build
         run: |
-          GOOS=linux GOARCH=amd64 go build -o bootstrap .
+          GOOS=linux GOARCH=arm64 go build -o bootstrap .
           zip function.zip bootstrap
 
       - name: Configure AWS credentials
