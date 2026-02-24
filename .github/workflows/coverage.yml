@@ -1,0 +1,36 @@
+# Runs on PRs targeting main or develop when the PR is not in draft.
+# Require this check in branch protection (main + develop) so merge is blocked until coverage >= 90%.
+name: Coverage
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  coverage:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests with coverage
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic -v
+
+      - name: Coverage report
+        run: go tool cover -func=coverage.out
+
+      - name: Enforce coverage >= 90%
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{gsub(/%/,""); print $3}')
+          echo "Total coverage: ${COVERAGE}%"
+          if [ "$(printf "%.0f" "$COVERAGE")" -lt 90 ]; then
+            echo "::error::Coverage ${COVERAGE}% is below the required 90%."
+            exit 1
+          fi
+          echo "Coverage check passed."
