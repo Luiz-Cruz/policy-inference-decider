@@ -1,1 +1,8 @@
+# IntelliJ
 .idea/
+
+# Build artifacts
+policy-inference-decider
+
+# Test Files
+coverage-reports
