@@ -29,8 +29,8 @@ const policyChallengeDOT = `digraph Policy { start [result=""] approved [result=
 type (
 	inferScenario struct {
 		handler  *Handler
-		request  events.APIGatewayProxyRequest
-		response events.APIGatewayProxyResponse
+		request  events.LambdaFunctionURLRequest
+		response events.LambdaFunctionURLResponse
 		err      error
 		ctx      context.Context
 	}
@@ -39,29 +39,45 @@ type (
 	}
 )
 
+func makeURLRequest(body, method, path string) events.LambdaFunctionURLRequest {
+	return events.LambdaFunctionURLRequest{
+		Body: body,
+		RequestContext: events.LambdaFunctionURLRequestContext{
+			RequestID: "test",
+			HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{
+				Method: method,
+				Path:   path,
+			},
+		},
+	}
+}
+
+func makeURLRequestWithRawPath(body, method, rawPath string) events.LambdaFunctionURLRequest {
+	return events.LambdaFunctionURLRequest{
+		Body:    body,
+		RawPath: rawPath,
+		RequestContext: events.LambdaFunctionURLRequestContext{
+			RequestID: "test",
+			HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{
+				Method: method,
+				Path:   "",
+			},
+		},
+	}
+}
+
 func TestInfer(t *testing.T) {
-	validRequestAge20 := events.APIGatewayProxyRequest{
-		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 20}}),
-	}
-	validRequestAge15 := events.APIGatewayProxyRequest{
-		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 15}}),
-	}
-	invalidBodyRequest := events.APIGatewayProxyRequest{Body: "invalid"}
-	requestDotNoStart := events.APIGatewayProxyRequest{
-		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotNoStart, Input: map[string]any{"x": 1}}),
-	}
-	requestWithCycle := events.APIGatewayProxyRequest{
-		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotWithCycle, Input: map[string]any{"x": 1}}),
-	}
-	requestInvalidCond := events.APIGatewayProxyRequest{
-		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotWithInvalidCond, Input: map[string]any{"x": 1}}),
-	}
-	requestInvalidFormat := events.APIGatewayProxyRequest{
-		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: dothWithInvalidFormat, Input: map[string]any{"age": 25}}),
-	}
-	requestChallengePolicy := events.APIGatewayProxyRequest{
-		Body: bodyFromInferRequest(policy.InferRequest{PolicyDOT: policyChallengeDOT, Input: map[string]any{"age": 25, "score": 720}}),
-	}
+	bodyAge20 := bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 20}})
+	bodyAge15 := bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 15}})
+	validRequestAge20 := makeURLRequest(bodyAge20, http.MethodPost, "/infer")
+	validRequestAge15 := makeURLRequest(bodyAge15, http.MethodPost, "/infer")
+	invalidBodyRequest := makeURLRequest("invalid", http.MethodPost, "/infer")
+	requestDotNoStart := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotNoStart, Input: map[string]any{"x": 1}}), http.MethodPost, "/infer")
+	requestWithCycle := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotWithCycle, Input: map[string]any{"x": 1}}), http.MethodPost, "/infer")
+	requestInvalidCond := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotWithInvalidCond, Input: map[string]any{"x": 1}}), http.MethodPost, "/infer")
+	requestInvalidFormat := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: dothWithInvalidFormat, Input: map[string]any{"age": 25}}), http.MethodPost, "/infer")
+	requestChallengePolicy := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: policyChallengeDOT, Input: map[string]any{"age": 25, "score": 720}}), http.MethodPost, "/infer")
+	requestPingWithRawPath := makeURLRequestWithRawPath("", http.MethodGet, "/ping")
 
 	testCases := map[string]struct {
 		run func(t *testing.T)
@@ -114,6 +130,43 @@ func TestInfer(t *testing.T) {
 			s.whenInferIsExecuted()
 			s.thenStatusOKWithOutput(t, inferResponseBody{Output: map[string]any{"age": float64(25), "score": float64(720), "approved": true, "segment": "prime"}})
 		}},
+		"not found when path is not /infer": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(makeURLRequest("", http.MethodPost, "/other"))
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusNotFound, apierror.CodeNotFound)
+		}},
+		"method not allowed when not POST": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(makeURLRequest(bodyAge20, http.MethodGet, "/infer"))
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusMethodNotAllowed, apierror.CodeMethodNotAllowed)
+		}},
+		"GET /ping returns pong": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(makeURLRequest("", http.MethodGet, "/ping"))
+			s.whenInferIsExecuted()
+			s.thenStatusOKWithPlainBody(t, "pong")
+		}},
+		"unsupported method returns 405": {run: func(t *testing.T) {
+			s := startInferScenario()
+			req := makeURLRequest(bodyAge20, http.MethodPut, "/infer")
+			s.givenARequest(req)
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusMethodNotAllowed, apierror.CodeMethodNotAllowed)
+		}},
+		"GET other path returns 404": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(makeURLRequest("", http.MethodGet, "/other"))
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusNotFound, apierror.CodeNotFound)
+		}},
+		"pathFromRequest uses RawPath when HTTP.Path empty": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(requestPingWithRawPath)
+			s.whenInferIsExecuted()
+			s.thenStatusOKWithPlainBody(t, "pong")
+		}},
 	}
 
 	t.Parallel()
@@ -126,7 +179,13 @@ func startInferScenario() *inferScenario {
 	return &inferScenario{handler: NewInferHandler(&policy.DotParser{}, &policy.GraphExecutor{})}
 }
 
-func (s *inferScenario) givenARequest(req events.APIGatewayProxyRequest) {
+func (s *inferScenario) givenARequest(req events.LambdaFunctionURLRequest) {
+	if req.RequestContext.HTTP.Path == "" && req.RawPath == "" {
+		req.RequestContext.HTTP.Path = "/infer"
+	}
+	if req.RequestContext.HTTP.Method == "" {
+		req.RequestContext.HTTP.Method = http.MethodPost
+	}
 	s.request = req
 	s.ctx = context.Background()
 }
@@ -141,6 +200,12 @@ func (s *inferScenario) thenStatusOKWithOutput(t *testing.T, want inferResponseB
 	var out inferResponseBody
 	require.NoError(t, json.Unmarshal([]byte(s.response.Body), &out))
 	assert.Equal(t, want, out)
+}
+
+func (s *inferScenario) thenStatusOKWithPlainBody(t *testing.T, wantBody string) {
+	require.NoError(t, s.err)
+	assert.Equal(t, http.StatusOK, s.response.StatusCode)
+	assert.Equal(t, wantBody, s.response.Body)
 }
 
 func (s *inferScenario) thenBadRequestWithAPIError(t *testing.T, wantStatus int, wantErrorCode string) {
