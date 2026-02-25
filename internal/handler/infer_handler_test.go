@@ -52,6 +52,20 @@ func makeURLRequest(body, method, path string) events.LambdaFunctionURLRequest {
 	}
 }
 
+func makeURLRequestWithRawPath(body, method, rawPath string) events.LambdaFunctionURLRequest {
+	return events.LambdaFunctionURLRequest{
+		Body:    body,
+		RawPath: rawPath,
+		RequestContext: events.LambdaFunctionURLRequestContext{
+			RequestID: "test",
+			HTTP: events.LambdaFunctionURLRequestContextHTTPDescription{
+				Method: method,
+				Path:   "",
+			},
+		},
+	}
+}
+
 func TestInfer(t *testing.T) {
 	bodyAge20 := bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 20}})
 	bodyAge15 := bodyFromInferRequest(policy.InferRequest{PolicyDOT: exampleDOT, Input: map[string]any{"age": 15}})
@@ -63,6 +77,7 @@ func TestInfer(t *testing.T) {
 	requestInvalidCond := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: dotWithInvalidCond, Input: map[string]any{"x": 1}}), http.MethodPost, "/infer")
 	requestInvalidFormat := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: dothWithInvalidFormat, Input: map[string]any{"age": 25}}), http.MethodPost, "/infer")
 	requestChallengePolicy := makeURLRequest(bodyFromInferRequest(policy.InferRequest{PolicyDOT: policyChallengeDOT, Input: map[string]any{"age": 25, "score": 720}}), http.MethodPost, "/infer")
+	requestPingWithRawPath := makeURLRequestWithRawPath("", http.MethodGet, "/ping")
 
 	testCases := map[string]struct {
 		run func(t *testing.T)
@@ -131,9 +146,7 @@ func TestInfer(t *testing.T) {
 			s := startInferScenario()
 			s.givenARequest(makeURLRequest("", http.MethodGet, "/ping"))
 			s.whenInferIsExecuted()
-			require.NoError(t, s.err)
-			assert.Equal(t, http.StatusOK, s.response.StatusCode)
-			assert.Equal(t, "pong", s.response.Body)
+			s.thenStatusOKWithPlainBody(t, "pong")
 		}},
 		"unsupported method returns 405": {run: func(t *testing.T) {
 			s := startInferScenario()
@@ -150,15 +163,9 @@ func TestInfer(t *testing.T) {
 		}},
 		"pathFromRequest uses RawPath when HTTP.Path empty": {run: func(t *testing.T) {
 			s := startInferScenario()
-			req := makeURLRequest("", http.MethodGet, "/ping")
-			req.RequestContext.HTTP.Path = ""
-			req.RawPath = "/ping"
-			s.request = req
-			s.ctx = context.Background()
+			s.givenARequest(requestPingWithRawPath)
 			s.whenInferIsExecuted()
-			require.NoError(t, s.err)
-			assert.Equal(t, http.StatusOK, s.response.StatusCode)
-			assert.Equal(t, "pong", s.response.Body)
+			s.thenStatusOKWithPlainBody(t, "pong")
 		}},
 	}
 
@@ -173,7 +180,7 @@ func startInferScenario() *inferScenario {
 }
 
 func (s *inferScenario) givenARequest(req events.LambdaFunctionURLRequest) {
-	if req.RequestContext.HTTP.Path == "" {
+	if req.RequestContext.HTTP.Path == "" && req.RawPath == "" {
 		req.RequestContext.HTTP.Path = "/infer"
 	}
 	if req.RequestContext.HTTP.Method == "" {
@@ -193,6 +200,12 @@ func (s *inferScenario) thenStatusOKWithOutput(t *testing.T, want inferResponseB
 	var out inferResponseBody
 	require.NoError(t, json.Unmarshal([]byte(s.response.Body), &out))
 	assert.Equal(t, want, out)
+}
+
+func (s *inferScenario) thenStatusOKWithPlainBody(t *testing.T, wantBody string) {
+	require.NoError(t, s.err)
+	assert.Equal(t, http.StatusOK, s.response.StatusCode)
+	assert.Equal(t, wantBody, s.response.Body)
 }
 
 func (s *inferScenario) thenBadRequestWithAPIError(t *testing.T, wantStatus int, wantErrorCode string) {
