@@ -42,18 +42,16 @@ Na raiz do projeto, `make` + alvo:
 - **Deploy** (`.github/workflows/deploy.yml`): em todo push na `main` o workflow faz build (Go, linux/arm64), empacota
   em zip e atualiza o código da Lambda com `update-function-code`. Usa o ambiente **prod** do repositório; os secrets
   `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e `AWS_LAMBDA_FUNCTION_NAME` vêm desse ambiente.
-![image (2)](https://github.com/user-attachments/assets/1898c8fc-9603-4059-b093-338a15eed85e)
 
-![image (4)](https://github.com/user-attachments/assets/bf744940-b47d-455e-9a71-ae8c91872f8e)
-
-![image (3)](https://github.com/user-attachments/assets/a855628a-5f4f-4c9a-8b79-3e68621a0031)
-
+<img width="2946" height="890" alt="image (16)" src="https://github.com/user-attachments/assets/ff519933-fd6e-4e72-964c-4c9eedf7a08d" />
+<img width="2958" height="1096" alt="image (18)" src="https://github.com/user-attachments/assets/b8f53d2e-cadf-43f9-84fb-309eec19a546" />
+<img width="2930" height="432" alt="image (17)" src="https://github.com/user-attachments/assets/b08c3302-7f10-41b4-8faf-b300ac2fb5e2" />
   
 - **Coverage** (`.github/workflows/coverage.yml`): em PRs para `main` ou `develop` (quando o PR não está em draft) roda
   os testes com cobertura e exige **≥ 90%** para passar. O check deve ser configurado como obrigatório na proteção de
   branch para bloquear merge sem cobertura mínima.
   
-  ![image (1)](https://github.com/user-attachments/assets/6c757b42-5185-4dd4-9a2a-09c146dc5b60)
+<img width="1702" height="554" alt="image (15)" src="https://github.com/user-attachments/assets/4787d192-d3ce-42f5-8e18-756a5204e463" />
 
 
 ## Proteção de branch
@@ -61,16 +59,12 @@ Na raiz do projeto, `make` + alvo:
 Em Settings → Branches → branch protection, foi configurado para **main** e **develop**:
 
 - **Exigir pull request**: não permitir push direto; todo código entra via PR.
-
-
-- **Exigir status checks**: marque o check **Coverage** como obrigatório antes do merge.
+- **Exigir status checks**: foi selecionado o check **Coverage** como obrigatório antes do merge.
 
 Assim ninguém faz push direto em main/develop e ninguém mergeia sem bater os 90% de cobertura.
 
-![image (6)](https://github.com/user-attachments/assets/56e7e3ae-ec97-408b-9c5a-4722b0717a5c)
-
-
-![image (7)](https://github.com/user-attachments/assets/7ce4d5b5-5326-42ce-9eb1-3019fdae683e)
+<img width="2376" height="994" alt="image (20)" src="https://github.com/user-attachments/assets/e3df7269-c142-450c-b63b-5b246719ea7a" />
+<img width="2406" height="822" alt="image (21)" src="https://github.com/user-attachments/assets/06eeb90a-20d8-49c3-b1ec-4096c64e10b1" />
 
 
 ## Load tests
@@ -86,7 +80,7 @@ npm install -g artillery
 Exemplos: `test-50rps.yaml`, `test-100rps-mixed.yaml`. O script substitui o placeholder da URL no YAML e chama o
 Artillery em modo run-lambda.
 
-![image (5)](https://github.com/user-attachments/assets/76b149a7-c1ee-411c-ae92-932c7403a58a)
+<img width="1384" height="1624" alt="image (19)" src="https://github.com/user-attachments/assets/4b1d7580-b6e1-46e0-8431-5c71d03cd6b3" />
 
 
 ## Estrutura
