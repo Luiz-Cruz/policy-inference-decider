@@ -135,6 +135,31 @@ func TestInfer(t *testing.T) {
 			assert.Equal(t, http.StatusOK, s.response.StatusCode)
 			assert.Equal(t, "pong", s.response.Body)
 		}},
+		"unsupported method returns 405": {run: func(t *testing.T) {
+			s := startInferScenario()
+			req := makeURLRequest(bodyAge20, http.MethodPut, "/infer")
+			s.givenARequest(req)
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusMethodNotAllowed, apierror.CodeMethodNotAllowed)
+		}},
+		"GET other path returns 404": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(makeURLRequest("", http.MethodGet, "/other"))
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusNotFound, apierror.CodeNotFound)
+		}},
+		"pathFromRequest uses RawPath when HTTP.Path empty": {run: func(t *testing.T) {
+			s := startInferScenario()
+			req := makeURLRequest("", http.MethodGet, "/ping")
+			req.RequestContext.HTTP.Path = ""
+			req.RawPath = "/ping"
+			s.request = req
+			s.ctx = context.Background()
+			s.whenInferIsExecuted()
+			require.NoError(t, s.err)
+			assert.Equal(t, http.StatusOK, s.response.StatusCode)
+			assert.Equal(t, "pong", s.response.Body)
+		}},
 	}
 
 	t.Parallel()

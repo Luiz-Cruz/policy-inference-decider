@@ -16,15 +16,6 @@ type APIError struct {
 	Status  int    `json:"status"`
 }
 
-func jsonErrorResponse(apiError apierror.APIError) events.APIGatewayProxyResponse {
-	responseBody, _ := json.Marshal(apiError)
-	return events.APIGatewayProxyResponse{
-		StatusCode: apiError.Status,
-		Headers:    map[string]string{"Content-Type": "application/json"},
-		Body:       string(responseBody),
-	}
-}
-
 func jsonErrorResponseURL(apiError apierror.APIError) events.LambdaFunctionURLResponse {
 	responseBody, _ := json.Marshal(apiError)
 	return events.LambdaFunctionURLResponse{
@@ -56,11 +47,6 @@ func errorFromBindJSON(err error) apierror.APIError {
 }
 
 type ErrorMapper func(err error) (apiError apierror.APIError)
-
-func Handle(err error, mapErr ErrorMapper) events.APIGatewayProxyResponse {
-	apiError := mapErr(err)
-	return jsonErrorResponse(apiError)
-}
 
 func HandleURL(err error, mapErr ErrorMapper) events.LambdaFunctionURLResponse {
 	apiError := mapErr(err)

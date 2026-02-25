@@ -101,7 +101,7 @@ npm install -g artillery
 
 ---
 
-## 📈 Roadmap & Próximos Passos (acho interessante agregar)
+## 📈 Next steps (acho interessante agregar)
 
 * [ ] **Custom Metrics:** Finalizar branch `feature/add-metrics` para dashboards no CloudWatch.
 * [ ] **Observabilidade:** Configurar alarmes de taxa de erro (>1% por 5min) e latência.
