@@ -3,6 +3,9 @@
 Serviço que avalia políticas descritas em grafo (DOT). Você manda o grafo, o input e recebe o output da inferência (qual
 nó foi atingido e quais atributos). Roda como Lambda na AWS.
 
+<img width="725" height="369" alt="image" src="https://github.com/user-attachments/assets/33a05066-a68f-432f-87de-0adfda66a800" />
+
+
 ## O que é
 
 API HTTP (Lambda Function URL) que recebe POST com:
@@ -39,18 +42,36 @@ Na raiz do projeto, `make` + alvo:
 - **Deploy** (`.github/workflows/deploy.yml`): em todo push na `main` o workflow faz build (Go, linux/arm64), empacota
   em zip e atualiza o código da Lambda com `update-function-code`. Usa o ambiente **prod** do repositório; os secrets
   `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e `AWS_LAMBDA_FUNCTION_NAME` vêm desse ambiente.
+![image (2)](https://github.com/user-attachments/assets/1898c8fc-9603-4059-b093-338a15eed85e)
+
+![image (4)](https://github.com/user-attachments/assets/bf744940-b47d-455e-9a71-ae8c91872f8e)
+
+![image (3)](https://github.com/user-attachments/assets/a855628a-5f4f-4c9a-8b79-3e68621a0031)
+
+  
 - **Coverage** (`.github/workflows/coverage.yml`): em PRs para `main` ou `develop` (quando o PR não está em draft) roda
   os testes com cobertura e exige **≥ 90%** para passar. O check deve ser configurado como obrigatório na proteção de
   branch para bloquear merge sem cobertura mínima.
+  
+  ![image (1)](https://github.com/user-attachments/assets/6c757b42-5185-4dd4-9a2a-09c146dc5b60)
+
 
 ## Proteção de branch
 
 Em Settings → Branches → branch protection, foi configurado para **main** e **develop**:
 
 - **Exigir pull request**: não permitir push direto; todo código entra via PR.
+
+
 - **Exigir status checks**: marque o check **Coverage** como obrigatório antes do merge.
 
 Assim ninguém faz push direto em main/develop e ninguém mergeia sem bater os 90% de cobertura.
+
+![image (6)](https://github.com/user-attachments/assets/56e7e3ae-ec97-408b-9c5a-4722b0717a5c)
+
+
+![image (7)](https://github.com/user-attachments/assets/7ce4d5b5-5326-42ce-9eb1-3019fdae683e)
+
 
 ## Load tests
 
@@ -64,6 +85,9 @@ npm install -g artillery
 
 Exemplos: `test-50rps.yaml`, `test-100rps-mixed.yaml`. O script substitui o placeholder da URL no YAML e chama o
 Artillery em modo run-lambda.
+
+![image (5)](https://github.com/user-attachments/assets/76b149a7-c1ee-411c-ae92-932c7403a58a)
+
 
 ## Estrutura
 
