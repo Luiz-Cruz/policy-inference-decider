@@ -13,11 +13,12 @@ import (
 )
 
 type Handler struct {
-	policy policy.Inferrer
+	parser   policy.Parser
+	executor policy.Executor
 }
 
-func NewInferHandler(policy policy.Inferrer) *Handler {
-	return &Handler{policy: policy}
+func NewInferHandler(parser policy.Parser, executor policy.Executor) *Handler {
+	return &Handler{parser: parser, executor: executor}
 }
 
 func (h *Handler) Infer(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -27,13 +28,13 @@ func (h *Handler) Infer(ctx context.Context, req events.APIGatewayProxyRequest) 
 		return Handle(err, errorFromBindJSON), nil
 	}
 
-	graph, err := h.policy.Parse(ctx, body.PolicyDOT)
+	graph, err := h.parser.Parse(ctx, body.PolicyDOT)
 	if err != nil {
 		slog.ErrorContext(ctx, fmt.Sprintf("[feature:policy_inference] [msg:parse_dot] [request_id: %s] [err:%+v]", req.RequestContext.RequestID, err))
 		return Handle(err, errorFromParseDOT), nil
 	}
 
-	resp, err := h.policy.Process(ctx, graph, body.Input)
+	resp, err := h.executor.Process(ctx, graph, body.Input)
 	if err != nil {
 		slog.ErrorContext(ctx, fmt.Sprintf("[feature:policy_inference] [msg:execute] [request_id:%s] [err:%+v] ", req.RequestContext.RequestID, err))
 		return Handle(err, errorFromPolicy), nil
