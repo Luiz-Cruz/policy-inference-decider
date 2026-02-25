@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"policy-inference-decider/internal/policy"
-
 	"github.com/aws/aws-lambda-go/events"
+
+	"policy-inference-decider/internal/policy"
 )
 
 type Handler struct {

@@ -6,3 +6,4 @@ policy-inference-decider
 
 # Test Files
 coverage-reports
+coverage.out
