@@ -123,7 +123,7 @@ func TestInfer(t *testing.T) {
 }
 
 func startInferScenario() *inferScenario {
-	return &inferScenario{handler: NewInferHandler(policy.NewPolicyExecutor(&policy.GraphExecutor{}, &policy.DotParser{}))}
+	return &inferScenario{handler: NewInferHandler(&policy.DotParser{}, &policy.GraphExecutor{})}
 }
 
 func (s *inferScenario) givenARequest(req events.APIGatewayProxyRequest) {
