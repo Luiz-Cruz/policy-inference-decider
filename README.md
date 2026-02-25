@@ -63,9 +63,9 @@ Em Settings → Branches → branch protection, foi configurado para **main** e 
 
 Assim ninguém faz push direto em main/develop e ninguém mergeia sem bater os 90% de cobertura.
 
-<img width="2376" height="994" alt="image (20)" src="https://github.com/user-attachments/assets/e3df7269-c142-450c-b63b-5b246719ea7a" />
-<img width="2406" height="822" alt="image (21)" src="https://github.com/user-attachments/assets/06eeb90a-20d8-49c3-b1ec-4096c64e10b1" />
+<img width="2376" height="994" alt="image (20)" src="https://github.com/user-attachments/assets/7458f8ee-858d-4a9d-a52d-d000dadd3fc5" />
 
+<img width="2406" height="822" alt="image (21)" src="https://github.com/user-attachments/assets/d1f937cb-55e3-45a8-b01d-e9ddba495c17" />
 
 ## Load tests
 
