@@ -45,8 +45,12 @@ Na raiz do projeto, `make` + alvo:
 
 ## Proteção de branch
 
-Para o coverage fazer sentido, em Settings → Branches → branch protection (main e develop) configure para exigir o check
-**Coverage** antes do merge. Assim ninguém mergeia sem bater os 90%.
+Em Settings → Branches → branch protection, foi configurado para **main** e **develop**:
+
+- **Exigir pull request**: não permitir push direto; todo código entra via PR.
+- **Exigir status checks**: marque o check **Coverage** como obrigatório antes do merge.
+
+Assim ninguém faz push direto em main/develop e ninguém mergeia sem bater os 90% de cobertura.
 
 ## Load tests
 
