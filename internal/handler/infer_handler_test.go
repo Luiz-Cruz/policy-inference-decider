@@ -114,6 +114,26 @@ func TestInfer(t *testing.T) {
 			s.whenInferIsExecuted()
 			s.thenStatusOKWithOutput(t, inferResponseBody{Output: map[string]any{"age": float64(25), "score": float64(720), "approved": true, "segment": "prime"}})
 		}},
+		"not found when path is not /infer": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(events.APIGatewayProxyRequest{Path: "/other", HTTPMethod: http.MethodPost})
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusNotFound, apierror.CodeNotFound)
+		}},
+		"method not allowed when not POST": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(events.APIGatewayProxyRequest{Path: "/infer", HTTPMethod: http.MethodGet, Body: validRequestAge20.Body})
+			s.whenInferIsExecuted()
+			s.thenBadRequestWithAPIError(t, http.StatusMethodNotAllowed, apierror.CodeMethodNotAllowed)
+		}},
+		"GET /ping returns pong": {run: func(t *testing.T) {
+			s := startInferScenario()
+			s.givenARequest(events.APIGatewayProxyRequest{Path: "/ping", HTTPMethod: http.MethodGet})
+			s.whenInferIsExecuted()
+			require.NoError(t, s.err)
+			assert.Equal(t, http.StatusOK, s.response.StatusCode)
+			assert.Equal(t, "pong", s.response.Body)
+		}},
 	}
 
 	t.Parallel()
@@ -127,6 +147,12 @@ func startInferScenario() *inferScenario {
 }
 
 func (s *inferScenario) givenARequest(req events.APIGatewayProxyRequest) {
+	if req.Path == "" {
+		req.Path = "/infer"
+	}
+	if req.HTTPMethod == "" {
+		req.HTTPMethod = http.MethodPost
+	}
 	s.request = req
 	s.ctx = context.Background()
 }
