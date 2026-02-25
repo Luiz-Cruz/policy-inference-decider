@@ -83,6 +83,15 @@ Artillery em modo run-lambda.
 <img width="1384" height="1624" alt="image (19)" src="https://github.com/user-attachments/assets/4b1d7580-b6e1-46e0-8431-5c71d03cd6b3" />
 
 
+## Next steps (acho interessante agregar no futuro)
+
+- **Métricas custom**: concluir o trabalho em andamento na branch `feature/add-metrics` e montar um dashboard no CloudWatch com as métricas da Lambda (sucesso/erro por causa).
+- **Alertas**: configurar alarmes no CloudWatch quando o error rate ultrapassar um limite (ex.: &gt; 1% por pelo menos 5 minutos), para reagir a picos de erro na Lambda.
+-- **Monitoramento**: configurar monitoramento da Lambda no CloudWatch (ex.: CPU usage, memory usage, error rate, etc.).
+-- **Github Actions**: 
+- configurar Github Actions para rodar os testes de carga e cobertura automaticamente.
+- verificar possibilidade de segregar os deploys para ambientes de teste desde o CLI AWS ou usando o Github Actions.
+
 ## Estrutura
 
 - `main.go`: entrada Lambda, monta handler com parser e executor.
