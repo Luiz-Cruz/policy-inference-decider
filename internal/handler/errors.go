@@ -25,6 +25,15 @@ func jsonErrorResponse(apiError apierror.APIError) events.APIGatewayProxyRespons
 	}
 }
 
+func jsonErrorResponseURL(apiError apierror.APIError) events.LambdaFunctionURLResponse {
+	responseBody, _ := json.Marshal(apiError)
+	return events.LambdaFunctionURLResponse{
+		StatusCode: apiError.Status,
+		Headers:    map[string]string{"Content-Type": "application/json"},
+		Body:       string(responseBody),
+	}
+}
+
 func errorFromPolicy(err error) apierror.APIError {
 	if errors.Is(err, policy.ErrNoStartNode) {
 		return apierror.NewNoStartNodeError()
@@ -51,4 +60,9 @@ type ErrorMapper func(err error) (apiError apierror.APIError)
 func Handle(err error, mapErr ErrorMapper) events.APIGatewayProxyResponse {
 	apiError := mapErr(err)
 	return jsonErrorResponse(apiError)
+}
+
+func HandleURL(err error, mapErr ErrorMapper) events.LambdaFunctionURLResponse {
+	apiError := mapErr(err)
+	return jsonErrorResponseURL(apiError)
 }

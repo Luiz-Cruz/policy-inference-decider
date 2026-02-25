@@ -2,7 +2,9 @@
 .idea/
 
 # Build artifacts
+bootstrap
 policy-inference-decider
+
 
 # Test Files
 coverage-reports
