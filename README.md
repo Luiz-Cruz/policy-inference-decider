@@ -7,7 +7,10 @@ O serviço é executado como uma **AWS Lambda** em arquitetura **arm64**.
 
 ## 🚀 Como Funciona
 
-A comunicação ocorre via **API HTTP (Lambda Function URL)** através de um método `POST`.
+A comunicação ocorre via **API HTTP (Lambda Function URL)**. Endpoints:
+
+* **`POST /infer`** — recebe o grafo e o input e retorna o output da inferência (contrato do desafio).
+* **`GET /ping`** — retorna `pong` (health check). Qualquer método em `/ping` retorna `pong`.
 
 ### Estrutura do Payload
 
@@ -37,7 +40,7 @@ Utilizei o `Makefile` na raiz do projeto para padronizar o fluxo de trabalho:
 
 ### AWS & Monitoramento
 
-* **Deployment:** Localizado em `us-east-1`**.
+* **Deployment:** Localizado em `us-east-1`.
 * **Logs:** Centralizados no **CloudWatch Logs** via `slog`, integrados ao log group da função.
 
 ### Pipelines (GitHub Actions)
@@ -98,7 +101,7 @@ npm install -g artillery
 
 ---
 
-## 📈 Roadmap & Próximos Passos (acho interessante agregar)
+## 📈 Next steps (acho interessante agregar)
 
 * [ ] **Custom Metrics:** Finalizar branch `feature/add-metrics` para dashboards no CloudWatch.
 * [ ] **Observabilidade:** Configurar alarmes de taxa de erro (>1% por 5min) e latência.

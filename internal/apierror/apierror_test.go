@@ -41,3 +41,17 @@ func TestNewInternalError(t *testing.T) {
 	assert.Equal(t, CodeInternalError, e.ErrorCode)
 	assert.Equal(t, "An internal error occurred.", e.Message)
 }
+
+func TestNewNotFoundError(t *testing.T) {
+	e := NewNotFoundError()
+	assert.Equal(t, http.StatusNotFound, e.Status)
+	assert.Equal(t, CodeNotFound, e.ErrorCode)
+	assert.Equal(t, "Not found.", e.Message)
+}
+
+func TestNewMethodNotAllowedError(t *testing.T) {
+	e := NewMethodNotAllowedError()
+	assert.Equal(t, http.StatusMethodNotAllowed, e.Status)
+	assert.Equal(t, CodeMethodNotAllowed, e.ErrorCode)
+	assert.Equal(t, "Method not allowed.", e.Message)
+}

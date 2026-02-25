@@ -8,6 +8,8 @@ const (
 	CodePolicyNoStartNode  = "policy_no_start_node"
 	CodeInvalidCondition   = "invalid_condition"
 	CodeInternalError      = "internal_error"
+	CodeNotFound           = "not_found"
+	CodeMethodNotAllowed   = "method_not_allowed"
 )
 
 const (
@@ -16,6 +18,8 @@ const (
 	msgPolicyNoStartNode  = "Policy graph has no start node."
 	msgInvalidCondition   = "Invalid condition in policy."
 	msgInternalError      = "An internal error occurred."
+	msgNotFound           = "Not found."
+	msgMethodNotAllowed   = "Method not allowed."
 )
 
 type APIError struct {
@@ -42,4 +46,12 @@ func NewInvalidConditionError() APIError {
 
 func NewInternalError() APIError {
 	return APIError{Status: http.StatusInternalServerError, ErrorCode: CodeInternalError, Message: msgInternalError}
+}
+
+func NewNotFoundError() APIError {
+	return APIError{Status: http.StatusNotFound, ErrorCode: CodeNotFound, Message: msgNotFound}
+}
+
+func NewMethodNotAllowedError() APIError {
+	return APIError{Status: http.StatusMethodNotAllowed, ErrorCode: CodeMethodNotAllowed, Message: msgMethodNotAllowed}
 }
