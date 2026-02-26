@@ -6,157 +6,427 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type evalConditionScenario struct {
-	t    *testing.T
-	cond string
-	vars map[string]any
-	got  bool
-	err  error
-}
-
 func TestEvalCondition(t *testing.T) {
-	testCases := map[string]struct {
-		run func(t *testing.T)
-	}{
-		"empty cond is true": {run: func(t *testing.T) {
-			s := startEvalConditionScenario(t)
-			s.givenCondAndVars("", map[string]any{"x": 1})
-			s.whenEvalConditionIsExecuted()
-			s.thenResultIs(true)
-		}},
-		"age>=18 true": {run: func(t *testing.T) {
-			s := startEvalConditionScenario(t)
-			s.givenCondAndVars("age>=18", map[string]any{"age": 20})
-			s.whenEvalConditionIsExecuted()
-			s.thenResultIs(true)
-		}},
-		"age>=18 false": {run: func(t *testing.T) {
-			s := startEvalConditionScenario(t)
-			s.givenCondAndVars("age>=18", map[string]any{"age": 15})
-			s.whenEvalConditionIsExecuted()
-			s.thenResultIs(false)
-		}},
-		"x==1 true": {run: func(t *testing.T) {
-			s := startEvalConditionScenario(t)
-			s.givenCondAndVars("x==1", map[string]any{"x": 1.0})
-			s.whenEvalConditionIsExecuted()
-			s.thenResultIs(true)
-		}},
-		"invalid expr returns false and error": {run: func(t *testing.T) {
-			s := startEvalConditionScenario(t)
-			s.givenCondAndVars("invalid!!!", map[string]any{})
-			s.whenEvalConditionIsExecuted()
-			s.thenErrorAndResultIsFalse()
-		}},
-		"non-bool expr result returns false": {run: func(t *testing.T) {
-			s := startEvalConditionScenario(t)
-			s.givenCondAndVars("1", map[string]any{})
-			s.whenEvalConditionIsExecuted()
-			s.thenResultIs(false)
-		}},
-	}
+	t.Run("empty cond is true", func(t *testing.T) {
+		// Arrange
+		cond := ""
+		vars := map[string]any{"x": 1}
 
-	t.Parallel()
-	for name, tc := range testCases {
-		t.Run(name, tc.run)
-	}
-}
+		// Act
+		got, err := EvalCondition(cond, vars)
 
-func startEvalConditionScenario(t *testing.T) *evalConditionScenario {
-	return &evalConditionScenario{t: t}
-}
+		// Assert
+		assert.NoError(t, err)
+		assert.True(t, got)
+	})
+	t.Run("age>=18 true", func(t *testing.T) {
+		// Arrange
+		cond := "age>=18"
+		vars := map[string]any{"age": 20}
 
-func (s *evalConditionScenario) givenCondAndVars(cond string, vars map[string]any) {
-	s.cond = cond
-	s.vars = vars
-}
+		// Act
+		got, err := EvalCondition(cond, vars)
 
-func (s *evalConditionScenario) whenEvalConditionIsExecuted() {
-	s.got, s.err = EvalCondition(s.cond, s.vars)
-}
+		// Assert
+		assert.NoError(t, err)
+		assert.True(t, got)
+	})
+	t.Run("age>=18 false", func(t *testing.T) {
+		// Arrange
+		cond := "age>=18"
+		vars := map[string]any{"age": 15}
 
-func (s *evalConditionScenario) thenResultIs(expected bool) {
-	assert.NoError(s.t, s.err)
-	assert.Equal(s.t, expected, s.got)
-}
+		// Act
+		got, err := EvalCondition(cond, vars)
 
-func (s *evalConditionScenario) thenErrorAndResultIsFalse() {
-	assert.Error(s.t, s.err)
-	assert.False(s.t, s.got)
-}
+		// Assert
+		assert.NoError(t, err)
+		assert.False(t, got)
+	})
+	t.Run("x==1 true", func(t *testing.T) {
+		// Arrange
+		cond := "x==1"
+		vars := map[string]any{"x": 1.0}
 
-type applyResultScenario struct {
-	t      *testing.T
-	result string
-	vars   map[string]any
-	err    error
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.NoError(t, err)
+		assert.True(t, got)
+	})
+	t.Run("invalid expr returns false and error", func(t *testing.T) {
+		// Arrange
+		cond := "invalid!!!"
+		vars := map[string]any{}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("bare number is invalid condition", func(t *testing.T) {
+		// Arrange
+		cond := "1"
+		vars := map[string]any{}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("arithmetic plus returns invalid", func(t *testing.T) {
+		// Arrange
+		cond := "age+1>=18"
+		vars := map[string]any{"age": 17}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("arithmetic star returns invalid", func(t *testing.T) {
+		// Arrange
+		cond := "score*2>100"
+		vars := map[string]any{"score": 60}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("allowed && and ||", func(t *testing.T) {
+		// Arrange
+		cond := "age>=18 && score>700"
+		vars := map[string]any{"age": 25, "score": 720}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.NoError(t, err)
+		assert.True(t, got)
+	})
+	t.Run("allowed comparison with negative number", func(t *testing.T) {
+		// Arrange
+		cond := "score> -1"
+		vars := map[string]any{"score": 100}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.NoError(t, err)
+		assert.True(t, got)
+	})
+	t.Run("allowed string literal", func(t *testing.T) {
+		// Arrange
+		cond := `role=="admin"`
+		vars := map[string]any{"role": "admin"}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.NoError(t, err)
+		assert.True(t, got)
+	})
+	t.Run("allowed boolean literal", func(t *testing.T) {
+		// Arrange
+		cond := "active==true"
+		vars := map[string]any{"active": true}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.NoError(t, err)
+		assert.True(t, got)
+	})
+	t.Run("arithmetic plus with spaces invalid", func(t *testing.T) {
+		// Arrange
+		cond := "age + 1 >= 18"
+		vars := map[string]any{"age": 17}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("arithmetic star invalid", func(t *testing.T) {
+		// Arrange
+		cond := "score*2 == 1400"
+		vars := map[string]any{"score": 700}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("arithmetic slash invalid", func(t *testing.T) {
+		// Arrange
+		cond := "points / 2 > 100"
+		vars := map[string]any{"points": 250}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("arithmetic minus invalid", func(t *testing.T) {
+		// Arrange
+		cond := "balance - 50 > 0"
+		vars := map[string]any{"balance": 100}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("triple equals invalid", func(t *testing.T) {
+		// Arrange
+		cond := `status === "ok"`
+		vars := map[string]any{"status": "ok"}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("angle bracket not equals invalid", func(t *testing.T) {
+		// Arrange
+		cond := "age <> 18"
+		vars := map[string]any{"age": 20}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("arrow equals invalid", func(t *testing.T) {
+		// Arrange
+		cond := "score => 800"
+		vars := map[string]any{"score": 800}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("caret equals invalid", func(t *testing.T) {
+		// Arrange
+		cond := "active ^= true"
+		vars := map[string]any{"active": true}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("parentheses not supported", func(t *testing.T) {
+		// Arrange
+		cond := "age>=18 && (score>700)"
+		vars := map[string]any{"age": 25, "score": 720}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("parentheses around comparisons invalid", func(t *testing.T) {
+		// Arrange
+		cond := `(name == "João") || (age < 20)`
+		vars := map[string]any{"name": "João", "age": 18}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("function call len invalid", func(t *testing.T) {
+		// Arrange
+		cond := "len(name) > 5"
+		vars := map[string]any{"name": "Alice"}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("function call isAdult invalid", func(t *testing.T) {
+		// Arrange
+		cond := "isAdult(age) == true"
+		vars := map[string]any{"age": 20}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("NULL value invalid", func(t *testing.T) {
+		// Arrange
+		cond := "height == NULL"
+		vars := map[string]any{}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("undefined value invalid", func(t *testing.T) {
+		// Arrange
+		cond := "name == undefined"
+		vars := map[string]any{}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("single ampersand invalid", func(t *testing.T) {
+		// Arrange
+		cond := "age>=18 & score>700"
+		vars := map[string]any{"age": 25, "score": 720}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("triple pipe invalid", func(t *testing.T) {
+		// Arrange
+		cond := "age>=18 ||| score>700"
+		vars := map[string]any{"age": 25, "score": 720}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("string without quotes invalid", func(t *testing.T) {
+		// Arrange
+		cond := "name == Joao"
+		vars := map[string]any{"name": "Joao"}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
+	t.Run("identifier starting with digit invalid", func(t *testing.T) {
+		// Arrange
+		cond := "1age == 10"
+		vars := map[string]any{"1age": 10}
+
+		// Act
+		got, err := EvalCondition(cond, vars)
+
+		// Assert
+		assert.Error(t, err)
+		assert.False(t, got)
+	})
 }
 
 func TestApplyResult(t *testing.T) {
-	testCases := map[string]struct {
-		run func(t *testing.T)
-	}{
-		"empty result does nothing": {run: func(t *testing.T) {
-			s := startApplyResultScenario(t)
-			s.givenResultAndVars("", map[string]any{"a": 1})
-			s.whenApplyResultIsExecuted()
-			s.thenVarsUnchanged()
-		}},
-		"key=value sets string": {run: func(t *testing.T) {
-			s := startApplyResultScenario(t)
-			s.givenResultAndVars("name=foo", map[string]any{})
-			s.whenApplyResultIsExecuted()
-			s.thenVarEquals("name", "foo")
-		}},
-		"key=true sets bool": {run: func(t *testing.T) {
-			s := startApplyResultScenario(t)
-			s.givenResultAndVars("approved=true", map[string]any{})
-			s.whenApplyResultIsExecuted()
-			s.thenVarEquals("approved", true)
-		}},
-		"multiple pairs": {run: func(t *testing.T) {
-			s := startApplyResultScenario(t)
-			s.givenResultAndVars("num=2.5, flag=true", map[string]any{})
-			s.whenApplyResultIsExecuted()
-			s.thenVarEquals("num", 2.5)
-			s.thenVarEquals("flag", true)
-		}},
-		"malformed pair without equals is skipped": {run: func(t *testing.T) {
-			s := startApplyResultScenario(t)
-			s.givenResultAndVars("a=1, badpair, b=2", map[string]any{})
-			s.whenApplyResultIsExecuted()
-			s.thenVarEquals("a", true)
-			s.thenVarEquals("b", 2.0)
-			assert.Len(s.t, s.vars, 2)
-		}},
-	}
+	t.Run("empty result does nothing", func(t *testing.T) {
+		// Arrange
+		result := ""
+		vars := map[string]any{"a": 1}
 
-	t.Parallel()
-	for name, tc := range testCases {
-		t.Run(name, tc.run)
-	}
-}
+		// Act
+		ApplyResult(result, vars)
 
-func startApplyResultScenario(t *testing.T) *applyResultScenario {
-	return &applyResultScenario{t: t}
-}
+		// Assert
+		assert.Len(t, vars, 1)
+		assert.Equal(t, 1, vars["a"])
+	})
+	t.Run("key=value sets string", func(t *testing.T) {
+		// Arrange
+		result := "name=foo"
+		vars := map[string]any{}
 
-func (s *applyResultScenario) givenResultAndVars(result string, vars map[string]any) {
-	s.result = result
-	s.vars = vars
-}
+		// Act
+		ApplyResult(result, vars)
 
-func (s *applyResultScenario) whenApplyResultIsExecuted() {
-	ApplyResult(s.result, s.vars)
-}
+		// Assert
+		assert.Equal(t, "foo", vars["name"])
+	})
+	t.Run("key=true sets bool", func(t *testing.T) {
+		// Arrange
+		result := "approved=true"
+		vars := map[string]any{}
 
-func (s *applyResultScenario) thenVarsUnchanged() {
-	assert.NoError(s.t, s.err)
-	assert.Len(s.t, s.vars, 1)
-	assert.Equal(s.t, 1, s.vars["a"])
-}
+		// Act
+		ApplyResult(result, vars)
 
-func (s *applyResultScenario) thenVarEquals(key string, expected any) {
-	assert.NoError(s.t, s.err)
-	assert.Equal(s.t, expected, s.vars[key])
+		// Assert
+		assert.Equal(t, true, vars["approved"])
+	})
+	t.Run("multiple pairs", func(t *testing.T) {
+		// Arrange
+		result := "num=2.5, flag=true"
+		vars := map[string]any{}
+
+		// Act
+		ApplyResult(result, vars)
+
+		// Assert
+		assert.Equal(t, 2.5, vars["num"])
+		assert.Equal(t, true, vars["flag"])
+	})
+	t.Run("malformed pair without equals is skipped", func(t *testing.T) {
+		// Arrange
+		result := "a=1, badpair, b=2"
+		vars := map[string]any{}
+
+		// Act
+		ApplyResult(result, vars)
+
+		// Assert
+		assert.Equal(t, true, vars["a"])
+		assert.Equal(t, 2.0, vars["b"])
+		assert.Len(t, vars, 2)
+	})
 }

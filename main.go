@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	parser := &policy.DotParser{}
-	executor := &policy.GraphExecutor{}
+	parser := policy.NewDotParser()
+	executor := policy.NewGraphExecutor()
 	inferHandler := handler.NewInferHandler(parser, executor)
 	lambda.Start(inferHandler.Infer)
 }

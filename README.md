@@ -10,7 +10,7 @@ O serviço é executado como uma **AWS Lambda** em arquitetura **arm64**.
 A comunicação ocorre via **API HTTP (Lambda Function URL)**. Endpoints:
 
 * **`POST /infer`** — recebe o grafo e o input e retorna o output da inferência (contrato do desafio).
-* **`GET /ping`** — retorna `pong` (health check). Qualquer método em `/ping` retorna `pong`.
+* **`GET /ping`** — retorna `pong` (health check).
 
 ### Estrutura do Payload
 
@@ -18,6 +18,8 @@ A comunicação ocorre via **API HTTP (Lambda Function URL)**. Endpoints:
 * **`input`**: Um mapa de variáveis para validação (ex: `{"age": 20}`).
 
 **Resposta:** Um JSON contendo o `output` do nó atingido após a avaliação das condições nas arestas.
+
+Documentação **Postman** com as requisições disponíveis para a Lambda: [Postman — Policy Inference Decider](https://documenter.getpostman.com/view/15447501/2sBXcGFLES).
 
 ---
 

@@ -10,6 +10,10 @@ import (
 
 type DotParser struct{}
 
+func NewDotParser() *DotParser {
+	return &DotParser{}
+}
+
 func (DotParser) Parse(ctx context.Context, dot string) (*Graph, error) {
 	astGraph, err := gographviz.ParseString(dot)
 	if err != nil {
