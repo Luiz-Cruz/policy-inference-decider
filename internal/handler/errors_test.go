@@ -11,106 +11,68 @@ import (
 	"policy-inference-decider/internal/policy"
 )
 
-type errorFromPolicyScenario struct {
-	inputErr  error
-	gotAPIErr apierror.APIError
-}
-
 func TestErrorFromPolicy(t *testing.T) {
-	errNoStartNode := policy.ErrNoStartNode
-	otherError := errors.New("some execution error")
+	t.Run("error ErrNoStartNode then returns 400 and policy_no_start_node", func(t *testing.T) {
+		// Arrange
+		inputErr := policy.ErrNoStartNode
 
-	errInvalidCondition := policy.ErrInvalidCondition
+		// Act
+		got := errorFromPolicy(inputErr)
 
-	testCases := map[string]func(t *testing.T){
-		"error - ErrNoStartNode then returns 400 and policy_no_start_node": func(t *testing.T) {
-			s := startErrorFromPolicyScenario()
-			s.givenAnError(errNoStartNode)
-			s.whenErrorFromPolicyIsCalled()
-			s.thenReturns(t, http.StatusBadRequest, apierror.CodePolicyNoStartNode, "Policy graph has no start node.")
-		},
-		"error - ErrInvalidCondition then returns 400 and invalid_condition": func(t *testing.T) {
-			s := startErrorFromPolicyScenario()
-			s.givenAnError(errInvalidCondition)
-			s.whenErrorFromPolicyIsCalled()
-			s.thenReturns(t, http.StatusBadRequest, apierror.CodeInvalidCondition, "Invalid condition in policy.")
-		},
-		"error - returns 500 and internal_error": func(t *testing.T) {
-			s := startErrorFromPolicyScenario()
-			s.givenAnError(otherError)
-			s.whenErrorFromPolicyIsCalled()
-			s.thenReturns(t, http.StatusInternalServerError, apierror.CodeInternalError, "An internal error occurred.")
-		},
-	}
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, got.Status)
+		assert.Equal(t, apierror.CodePolicyNoStartNode, got.ErrorCode)
+		assert.Equal(t, "Policy graph has no start node.", got.Message)
+	})
+	t.Run("error ErrInvalidCondition then returns 400 and invalid_condition", func(t *testing.T) {
+		// Arrange
+		inputErr := policy.ErrInvalidCondition
 
-	t.Parallel()
-	for name, tc := range testCases {
-		t.Run(name, tc)
-	}
-}
+		// Act
+		got := errorFromPolicy(inputErr)
 
-func startErrorFromPolicyScenario() *errorFromPolicyScenario {
-	return &errorFromPolicyScenario{}
-}
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, got.Status)
+		assert.Equal(t, apierror.CodeInvalidCondition, got.ErrorCode)
+		assert.Equal(t, "Invalid condition in policy.", got.Message)
+	})
+	t.Run("error returns 500 and internal_error", func(t *testing.T) {
+		// Arrange
+		inputErr := errors.New("some execution error")
 
-func (s *errorFromPolicyScenario) givenAnError(err error) {
-	s.inputErr = err
-}
+		// Act
+		got := errorFromPolicy(inputErr)
 
-func (s *errorFromPolicyScenario) whenErrorFromPolicyIsCalled() {
-	s.gotAPIErr = errorFromPolicy(s.inputErr)
-}
-
-func (s *errorFromPolicyScenario) thenReturns(t *testing.T, wantCode int, wantErrorCode, wantMessage string) {
-	assert.Equal(t, wantCode, s.gotAPIErr.Status)
-	assert.Equal(t, wantErrorCode, s.gotAPIErr.ErrorCode)
-	assert.Equal(t, wantMessage, s.gotAPIErr.Message)
-}
-
-type errorFromParseDOTScenario struct {
-	inputErr  error
-	gotAPIErr apierror.APIError
+		// Assert
+		assert.Equal(t, http.StatusInternalServerError, got.Status)
+		assert.Equal(t, apierror.CodeInternalError, got.ErrorCode)
+		assert.Equal(t, "An internal error occurred.", got.Message)
+	})
 }
 
 func TestErrorFromParseDOT(t *testing.T) {
-	errNoStartNode := policy.ErrNoStartNode
-	invalidDOTError := errors.New("syntax error: unexpected SEMI")
+	t.Run("when ErrNoStartNode then returns 400 and policy_no_start_node", func(t *testing.T) {
+		// Arrange
+		inputErr := policy.ErrNoStartNode
 
-	testCases := map[string]func(t *testing.T){
-		"test when ErrNoStartNode then returns 400 and policy_no_start_node": func(t *testing.T) {
-			s := startErrorFromParseDOTScenario()
-			s.givenAnError(errNoStartNode)
-			s.whenErrorFromParseDOTIsCalled()
-			s.thenReturns(t, http.StatusBadRequest, apierror.CodePolicyNoStartNode, "Policy graph has no start node.")
-		},
-		"test when other error then returns 400 and invalid_policy_dot": func(t *testing.T) {
-			s := startErrorFromParseDOTScenario()
-			s.givenAnError(invalidDOTError)
-			s.whenErrorFromParseDOTIsCalled()
-			s.thenReturns(t, http.StatusBadRequest, apierror.CodeInvalidPolicyDOT, "Invalid policy DOT format.")
-		},
-	}
+		// Act
+		got := errorFromParseDOT(inputErr)
 
-	t.Parallel()
-	for name, tc := range testCases {
-		t.Run(name, tc)
-	}
-}
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, got.Status)
+		assert.Equal(t, apierror.CodePolicyNoStartNode, got.ErrorCode)
+		assert.Equal(t, "Policy graph has no start node.", got.Message)
+	})
+	t.Run("when other error then returns 400 and invalid_policy_dot", func(t *testing.T) {
+		// Arrange
+		inputErr := errors.New("syntax error: unexpected SEMI")
 
-func startErrorFromParseDOTScenario() *errorFromParseDOTScenario {
-	return &errorFromParseDOTScenario{}
-}
+		// Act
+		got := errorFromParseDOT(inputErr)
 
-func (s *errorFromParseDOTScenario) givenAnError(err error) {
-	s.inputErr = err
-}
-
-func (s *errorFromParseDOTScenario) whenErrorFromParseDOTIsCalled() {
-	s.gotAPIErr = errorFromParseDOT(s.inputErr)
-}
-
-func (s *errorFromParseDOTScenario) thenReturns(t *testing.T, wantCode int, wantErrorCode, wantMessage string) {
-	assert.Equal(t, wantCode, s.gotAPIErr.Status)
-	assert.Equal(t, wantErrorCode, s.gotAPIErr.ErrorCode)
-	assert.Equal(t, wantMessage, s.gotAPIErr.Message)
+		// Assert
+		assert.Equal(t, http.StatusBadRequest, got.Status)
+		assert.Equal(t, apierror.CodeInvalidPolicyDOT, got.ErrorCode)
+		assert.Equal(t, "Invalid policy DOT format.", got.Message)
+	})
 }
