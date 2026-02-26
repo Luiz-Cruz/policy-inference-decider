@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 
 	"policy-inference-decider/internal/apierror"
+	"policy-inference-decider/internal/metric"
 	"policy-inference-decider/internal/policy"
 )
 
@@ -84,6 +85,7 @@ func (h *Handler) infer(ctx context.Context, req events.LambdaFunctionURLRequest
 		return HandleURL(err, errorFromPolicy)
 	}
 
+	metric.EmitSuccess()
 	responseBody, _ := json.Marshal(resp)
 	return events.LambdaFunctionURLResponse{
 		StatusCode: http.StatusOK,
