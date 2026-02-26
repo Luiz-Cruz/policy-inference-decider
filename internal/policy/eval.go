@@ -1,15 +1,32 @@
 package policy
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/casbin/govaluate"
 )
 
+const arithmeticCondChars = "+*/"
+
+var validCondRegex = regexp.MustCompile(
+	`^\s*[a-zA-Z_]\w*\s*(==|!=|>=|<=|>|<)\s*(-?\d+(?:\.\d+)?|"[^"]*"|true|false)(\s*(?:&&|\|\|)\s*[a-zA-Z_]\w*\s*(==|!=|>=|<=|>|<)\s*(-?\d+(?:\.\d+)?|"[^"]*"|true|false))*\s*$`,
+)
+
+func isValidCond(cond string) bool {
+	if strings.ContainsAny(cond, arithmeticCondChars) {
+		return false
+	}
+	return validCondRegex.MatchString(cond)
+}
+
 func EvalCondition(cond string, vars map[string]any) (bool, error) {
 	if cond == "" {
 		return true, nil
+	}
+	if !isValidCond(cond) {
+		return false, ErrInvalidCondition
 	}
 	expr, err := govaluate.NewEvaluableExpression(cond)
 	if err != nil {

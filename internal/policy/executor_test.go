@@ -21,7 +21,7 @@ func TestExecute(t *testing.T) {
 	cycleDOT := `digraph { start [result=""]; a [result="done=true"]; start -> a [cond="x==1"]; a -> a [cond="x==1"]; }`
 
 	singleNodeDOT := `digraph { start [result="x=1"]; }`
-	edgeToMissingNodeDOT := `digraph { start [result="done=true"]; start -> ghost [cond="true"]; }`
+	edgeToMissingNodeDOT := `digraph { start [result="done=true"]; start -> ghost [cond="x==1"]; }`
 
 	testCases := map[string]struct {
 		run func(t *testing.T)
@@ -52,9 +52,9 @@ func TestExecute(t *testing.T) {
 		}},
 		"edge to missing node applies start result then stops": {run: func(t *testing.T) {
 			s := startExecuteScenario(t)
-			s.givenDOTAndVars(edgeToMissingNodeDOT, map[string]any{})
+			s.givenDOTAndVars(edgeToMissingNodeDOT, map[string]any{"x": 1})
 			s.whenExecuteIsExecuted()
-			s.thenOutputEquals(map[string]any{"done": true})
+			s.thenOutputEquals(map[string]any{"done": true, "x": 1})
 		}},
 	}
 
@@ -75,13 +75,13 @@ func (s *executeScenario) givenDOTAndVars(dot string, vars map[string]any) {
 
 func (s *executeScenario) whenExecuteIsExecuted() {
 	var err error
-	s.graph, err = DotParser{}.Parse(context.Background(), s.dot)
+	s.graph, err = NewDotParser().Parse(context.Background(), s.dot)
 	if err != nil {
 		s.err = err
 		return
 	}
 	var resp InferResponse
-	resp, s.err = GraphExecutor{}.Process(context.Background(), s.graph, s.vars)
+	resp, s.err = NewGraphExecutor().Process(context.Background(), s.graph, s.vars)
 	s.out = resp.Output
 }
 

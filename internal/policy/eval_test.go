@@ -48,11 +48,155 @@ func TestEvalCondition(t *testing.T) {
 			s.whenEvalConditionIsExecuted()
 			s.thenErrorAndResultIsFalse()
 		}},
-		"non-bool expr result returns false": {run: func(t *testing.T) {
+		"bare number is invalid condition": {run: func(t *testing.T) {
 			s := startEvalConditionScenario(t)
 			s.givenCondAndVars("1", map[string]any{})
 			s.whenEvalConditionIsExecuted()
-			s.thenResultIs(false)
+			s.thenErrorAndResultIsFalse()
+		}},
+		"arithmetic plus returns invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("age+1>=18", map[string]any{"age": 17})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"arithmetic star returns invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("score*2>100", map[string]any{"score": 60})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"allowed && and ||": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("age>=18 && score>700", map[string]any{"age": 25, "score": 720})
+			s.whenEvalConditionIsExecuted()
+			s.thenResultIs(true)
+		}},
+		"allowed comparison with negative number": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("score> -1", map[string]any{"score": 100})
+			s.whenEvalConditionIsExecuted()
+			s.thenResultIs(true)
+		}},
+		"allowed string literal": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars(`role=="admin"`, map[string]any{"role": "admin"})
+			s.whenEvalConditionIsExecuted()
+			s.thenResultIs(true)
+		}},
+		"allowed boolean literal": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("active==true", map[string]any{"active": true})
+			s.whenEvalConditionIsExecuted()
+			s.thenResultIs(true)
+		}},
+		"arithmetic plus with spaces invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("age + 1 >= 18", map[string]any{"age": 17})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"arithmetic star invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("score*2 == 1400", map[string]any{"score": 700})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"arithmetic slash invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("points / 2 > 100", map[string]any{"points": 250})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"arithmetic minus invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("balance - 50 > 0", map[string]any{"balance": 100})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"triple equals invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars(`status === "ok"`, map[string]any{"status": "ok"})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"angle bracket not equals invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("age <> 18", map[string]any{"age": 20})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"arrow equals invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("score => 800", map[string]any{"score": 800})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"caret equals invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("active ^= true", map[string]any{"active": true})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"parentheses not supported": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("age>=18 && (score>700)", map[string]any{"age": 25, "score": 720})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"parentheses around comparisons invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars(`(name == "João") || (age < 20)`, map[string]any{"name": "João", "age": 18})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"function call len invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("len(name) > 5", map[string]any{"name": "Alice"})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"function call isAdult invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("isAdult(age) == true", map[string]any{"age": 20})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"NULL value invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("height == NULL", map[string]any{})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"undefined value invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("name == undefined", map[string]any{})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"single ampersand invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("age>=18 & score>700", map[string]any{"age": 25, "score": 720})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"triple pipe invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("age>=18 ||| score>700", map[string]any{"age": 25, "score": 720})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"string without quotes invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("name == Joao", map[string]any{"name": "Joao"})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
+		}},
+		"identifier starting with digit invalid": {run: func(t *testing.T) {
+			s := startEvalConditionScenario(t)
+			s.givenCondAndVars("1age == 10", map[string]any{"1age": 10})
+			s.whenEvalConditionIsExecuted()
+			s.thenErrorAndResultIsFalse()
 		}},
 	}
 

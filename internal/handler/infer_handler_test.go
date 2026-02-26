@@ -176,7 +176,7 @@ func TestInfer(t *testing.T) {
 }
 
 func startInferScenario() *inferScenario {
-	return &inferScenario{handler: NewInferHandler(&policy.DotParser{}, &policy.GraphExecutor{})}
+	return &inferScenario{handler: NewInferHandler(policy.NewDotParser(), policy.NewGraphExecutor())}
 }
 
 func (s *inferScenario) givenARequest(req events.LambdaFunctionURLRequest) {
