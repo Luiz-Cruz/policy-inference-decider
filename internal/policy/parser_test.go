@@ -57,7 +57,7 @@ func (s *parseDOTScenario) givenDOT(dot string) {
 }
 
 func (s *parseDOTScenario) whenParseDOTIsExecuted() {
-	s.graph, s.err = DotParser{}.Parse(context.Background(), s.dot)
+	s.graph, s.err = NewDotParser().Parse(context.Background(), s.dot)
 }
 
 func (s *parseDOTScenario) thenGraphHasStartAndNodes() {

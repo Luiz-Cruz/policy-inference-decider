@@ -4,6 +4,10 @@ import "context"
 
 type GraphExecutor struct{}
 
+func NewGraphExecutor() *GraphExecutor {
+	return &GraphExecutor{}
+}
+
 func (GraphExecutor) Process(ctx context.Context, graph *Graph, input map[string]any) (InferResponse, error) {
 	out := copyInputToOutput(input)
 	visited := make(map[string]bool)
