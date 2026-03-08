@@ -14,7 +14,7 @@ func (GraphExecutor) Process(ctx context.Context, graph *Graph, input map[string
 	current := graph.Start
 	for {
 		if node := graph.Nodes[current]; node != nil {
-			ApplyResult(node.Result, out)
+			applyParsedResult(node.ParsedResult, out)
 		}
 		visited[current] = true
 		next, err := findNextNode(current, graph, out)
@@ -37,20 +37,15 @@ func copyInputToOutput(input map[string]any) map[string]any {
 	return out
 }
 
-// findNextNode returns the first outgoing edge from current whose condition evaluates to true (deterministic single path).
 func findNextNode(current string, graph *Graph, vars map[string]any) (string, error) {
-	for _, edge := range graph.Edges {
-		if edge.From != current {
-			continue
-		}
-		ok, err := EvalCondition(edge.Cond, vars)
+	for _, edge := range graph.AdjList[current] {
+		ok, err := EvalEdgeCondition(edge, vars)
 		if err != nil {
 			return "", err
 		}
-		if !ok {
-			continue
+		if ok {
+			return edge.To, nil
 		}
-		return edge.To, nil
 	}
 	return "", nil
 }

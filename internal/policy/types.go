@@ -1,5 +1,7 @@
 package policy
 
+import "github.com/casbin/govaluate"
+
 const StartNodeID = "start"
 
 type (
@@ -13,19 +15,23 @@ type (
 	}
 
 	Graph struct {
-		Nodes map[string]*Node
-		Edges []*Edge
-		Start string
+		Nodes   map[string]*Node
+		Edges   []*Edge
+		AdjList map[string][]*Edge
+		Start   string
 	}
 
 	Node struct {
-		ID     string
-		Result string
+		ID           string
+		Result       string
+		ParsedResult map[string]any
 	}
 
 	Edge struct {
-		From string
-		To   string
-		Cond string
+		From         string
+		To           string
+		Cond         string
+		ValidCond    bool
+		CompiledCond *govaluate.EvaluableExpression
 	}
 )
