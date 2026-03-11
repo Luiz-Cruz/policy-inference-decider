@@ -1,0 +1,72 @@
+config:
+  target: "https://LAMBDA_FUNCTION_URL"
+  http:
+    pool: 50
+    timeout: 30
+  phases:
+    - name: "cold start warm-up (exclude from P90/latency metrics)"
+      duration: 30
+      arrivalRate: 20
+    - name: "warm-up (cache miss expected)"
+      duration: 10
+      arrivalRate: 1
+    - name: "sustained load (cache hit expected - same policies)"
+      duration: 60
+      arrivalRate: 30
+    - name: "peak load (cache hit - high frequency policies dominate)"
+      duration: 30
+      arrivalRate: 50
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "heavy policy - credit scoring PF (high frequency)"
+    weight: 60
+    flow:
+      - post:
+          url: "/infer"
+          json:
+            policy_dot: "digraph CreditPF { start [result=\"\"]; tier1_check [result=\"\"]; tier2_check [result=\"\"]; approved_prime [result=\"approved=true,segment=prime,limit=50000\"]; approved_standard [result=\"approved=true,segment=standard,limit=20000\"]; approved_basic [result=\"approved=true,segment=basic,limit=5000\"]; review_manual [result=\"approved=false,segment=manual_review,reason=inconclusive\"]; review_docs [result=\"approved=false,segment=doc_review,reason=missing_docs\"]; rejected_age [result=\"approved=false,reason=underage\"]; rejected_score [result=\"approved=false,reason=low_score\"]; rejected_income [result=\"approved=false,reason=insufficient_income\"]; start -> rejected_age [cond=\"age<18\"]; start -> tier1_check [cond=\"age>=18 && age<=25\"]; start -> tier2_check [cond=\"age>25\"]; tier1_check -> approved_basic [cond=\"score>=600 && income>=2000\"]; tier1_check -> review_docs [cond=\"score>=400 && income>=2000\"]; tier1_check -> rejected_score [cond=\"score<400\"]; tier2_check -> approved_prime [cond=\"score>=750 && income>=10000\"]; tier2_check -> approved_standard [cond=\"score>=600 && income>=5000\"]; tier2_check -> approved_basic [cond=\"score>=600 && income>=2000\"]; tier2_check -> review_manual [cond=\"score>=400 && income>=2000\"]; tier2_check -> rejected_income [cond=\"income<2000\"]; tier2_check -> rejected_score [cond=\"score<400\"]; }"
+            input:
+              age: 22
+              score: 650
+              income: 5000
+
+  - name: "heavy policy - credit scoring PF (same policy, different input)"
+    weight: 20
+    flow:
+      - post:
+          url: "/infer"
+          json:
+            policy_dot: "digraph CreditPF { start [result=\"\"]; tier1_check [result=\"\"]; tier2_check [result=\"\"]; approved_prime [result=\"approved=true,segment=prime,limit=50000\"]; approved_standard [result=\"approved=true,segment=standard,limit=20000\"]; approved_basic [result=\"approved=true,segment=basic,limit=5000\"]; review_manual [result=\"approved=false,segment=manual_review,reason=inconclusive\"]; review_docs [result=\"approved=false,segment=doc_review,reason=missing_docs\"]; rejected_age [result=\"approved=false,reason=underage\"]; rejected_score [result=\"approved=false,reason=low_score\"]; rejected_income [result=\"approved=false,reason=insufficient_income\"]; start -> rejected_age [cond=\"age<18\"]; start -> tier1_check [cond=\"age>=18 && age<=25\"]; start -> tier2_check [cond=\"age>25\"]; tier1_check -> approved_basic [cond=\"score>=600 && income>=2000\"]; tier1_check -> review_docs [cond=\"score>=400 && income>=2000\"]; tier1_check -> rejected_score [cond=\"score<400\"]; tier2_check -> approved_prime [cond=\"score>=750 && income>=10000\"]; tier2_check -> approved_standard [cond=\"score>=600 && income>=5000\"]; tier2_check -> approved_basic [cond=\"score>=600 && income>=2000\"]; tier2_check -> review_manual [cond=\"score>=400 && income>=2000\"]; tier2_check -> rejected_income [cond=\"income<2000\"]; tier2_check -> rejected_score [cond=\"score<400\"]; }"
+            input:
+              age: 35
+              score: 780
+              income: 12000
+
+  - name: "heavy policy - fraud detection (low frequency, different policy)"
+    weight: 10
+    flow:
+      - post:
+          url: "/infer"
+          json:
+            policy_dot: "digraph FraudDetection { start [result=\"\"]; velocity_check [result=\"\"]; location_check [result=\"\"]; approved [result=\"blocked=false,risk=low\"]; suspicious [result=\"blocked=false,risk=medium,flag=review\"]; blocked_velocity [result=\"blocked=true,risk=high,reason=velocity\"]; blocked_amount [result=\"blocked=true,risk=critical,reason=amount\"]; blocked_location [result=\"blocked=true,risk=high,reason=location\"]; blocked_device [result=\"blocked=true,risk=critical,reason=new_device\"]; start -> blocked_amount [cond=\"amount>=50000\"]; start -> velocity_check [cond=\"amount<50000 && tx_count_1h>=5\"]; start -> location_check [cond=\"amount<50000 && tx_count_1h<5\"]; velocity_check -> blocked_velocity [cond=\"tx_count_1h>=10\"]; velocity_check -> suspicious [cond=\"tx_count_1h>=5 && tx_count_1h<10\"]; location_check -> blocked_device [cond=\"is_new_device==true\"]; location_check -> blocked_location [cond=\"distance_km>=500\"]; location_check -> approved [cond=\"distance_km<500\"]; }"
+            input:
+              amount: 2500
+              tx_count_1h: 3
+              is_new_device: false
+              distance_km: 50
+
+  - name: "heavy policy - customer segmentation (low frequency, different policy)"
+    weight: 10
+    flow:
+      - post:
+          url: "/infer"
+          json:
+            policy_dot: "digraph Segmentation { start [result=\"\"]; income_check [result=\"\"]; engagement_check [result=\"\"]; segment_private [result=\"segment=private,priority=1,relationship_manager=true\"]; segment_prime [result=\"segment=prime,priority=2,benefits=cashback\"]; segment_standard [result=\"segment=standard,priority=3\"]; segment_digital [result=\"segment=digital,priority=4,channel=app_only\"]; segment_basic [result=\"segment=basic,priority=5\"]; start -> income_check [cond=\"age>=18\"]; start -> segment_basic [cond=\"age<18\"]; income_check -> segment_private [cond=\"income>=30000 && balance>=100000\"]; income_check -> segment_prime [cond=\"income>=10000 && balance>=20000\"]; income_check -> engagement_check [cond=\"income>=3000\"]; income_check -> segment_basic [cond=\"income<3000\"]; engagement_check -> segment_standard [cond=\"monthly_logins>=10\"]; engagement_check -> segment_digital [cond=\"monthly_logins>=3 && monthly_logins<10\"]; engagement_check -> segment_basic [cond=\"monthly_logins<3\"]; }"
+            input:
+              age: 28
+              income: 7000
+              balance: 15000
+              monthly_logins: 12

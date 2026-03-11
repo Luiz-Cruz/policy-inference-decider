@@ -9,7 +9,7 @@ func NewGraphExecutor() *GraphExecutor {
 }
 
 func (GraphExecutor) Process(ctx context.Context, graph *Graph, input map[string]any) (InferResponse, error) {
-	out := copyInputToOutput(input)
+	out := input
 	visited := make(map[string]bool)
 	current := graph.Start
 	for {
@@ -27,14 +27,6 @@ func (GraphExecutor) Process(ctx context.Context, graph *Graph, input map[string
 		current = next
 	}
 	return InferResponse{Output: out}, nil
-}
-
-func copyInputToOutput(input map[string]any) map[string]any {
-	out := make(map[string]any, len(input))
-	for k, v := range input {
-		out[k] = v
-	}
-	return out
 }
 
 func findNextNode(current string, graph *Graph, vars map[string]any) (string, error) {

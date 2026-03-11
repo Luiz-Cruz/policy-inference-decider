@@ -32,6 +32,8 @@ Utilizei o `Makefile` na raiz do projeto para padronizar o fluxo de trabalho:
 | `make test` | Executa a suíte de testes unitários. |
 | `make coverage` | Valida a cobertura de testes (falha se for `< 90%`). |
 | `make build-lambda` | Compila o binário `bootstrap` e gera o `.zip` para deploy (linux/arm64). |
+| `make bench` | Roda benchmarks de parse e inferência (cache hit vs miss). |
+| `make bench-lambda` | Mesmos benchmarks com limite de heap 96 MB (simula Lambda 128 MB). |
 | `make format` | Executa `gofmt`, `gofumpt` e `go mod tidy`. |
 | `make sort-imports` | Organiza os imports (requer `make install-tools`). |
 | `make run-all` | Executa formatação, ordenação e testes (ideal para pre-commit). |
@@ -100,6 +102,7 @@ npm install -g artillery
 * `internal/policy`: Core engine (parsing de DOT e avaliação de expressões com `govaluate`).
 * `internal/apierror`: Padronização de erros e códigos de retorno.
 * `loadtest/`: Manifestos e scripts de teste de performance.
+* `internal/policy/bench_test.go`: Benchmarks de parse (NoCache, CacheHit, CacheMiss) e inferência para validar o cache LFU.
 
 ---
 

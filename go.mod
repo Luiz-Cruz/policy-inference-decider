@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/awalterschulze/gographviz v2.0.3+incompatible
 	github.com/casbin/govaluate v1.10.0
 	github.com/stretchr/testify v1.10.0
