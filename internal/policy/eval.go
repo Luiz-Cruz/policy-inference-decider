@@ -4,8 +4,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/casbin/govaluate"
 )
 
 const arithmeticCondChars = "+*/"
@@ -21,22 +19,14 @@ func isValidCond(cond string) bool {
 	return validCondRegex.MatchString(cond)
 }
 
-func EvalCondition(cond string, vars map[string]any) (bool, error) {
-	if cond == "" {
+func EvalEdgeCondition(edge *Edge, vars map[string]any) (bool, error) {
+	if edge.Cond == "" {
 		return true, nil
 	}
-	if !isValidCond(cond) {
+	if !edge.ValidCond || edge.CompiledCond == nil {
 		return false, ErrInvalidCondition
 	}
-	expr, err := govaluate.NewEvaluableExpression(cond)
-	if err != nil {
-		return false, ErrInvalidCondition
-	}
-	evars := make(map[string]interface{})
-	for k, v := range vars {
-		evars[k] = v
-	}
-	result, err := expr.Evaluate(evars)
+	result, err := edge.CompiledCond.Evaluate(vars)
 	if err != nil {
 		return false, ErrInvalidCondition
 	}
@@ -68,17 +58,25 @@ func parseResultValue(valStr string) any {
 	return valStr
 }
 
-func ApplyResult(result string, vars map[string]any) {
+func preParseResult(result string) map[string]any {
 	result = strings.TrimSpace(result)
 	if result == "" {
-		return
+		return nil
 	}
+	parsed := make(map[string]any)
 	pairs := strings.Split(result, ",")
 	for _, pair := range pairs {
 		key, valStr, ok := parseKeyValue(pair)
 		if !ok {
 			continue
 		}
-		vars[key] = parseResultValue(valStr)
+		parsed[key] = parseResultValue(valStr)
+	}
+	return parsed
+}
+
+func applyParsedResult(parsed map[string]any, vars map[string]any) {
+	for k, v := range parsed {
+		vars[k] = v
 	}
 }

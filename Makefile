@@ -1,4 +1,4 @@
-.PHONY: install-tools format sort-imports run test coverage build-lambda run-all
+.PHONY: install-tools format sort-imports run test coverage build-lambda bench bench-lambda run-all
 
 install-tools:
 	go install github.com/daixiang0/gci@latest
@@ -24,5 +24,11 @@ coverage:
 build-lambda:
 	GOOS=linux GOARCH=arm64 go build -o bootstrap .
 	zip -q function.zip bootstrap
+
+bench:
+	go test -bench=. -benchmem ./internal/policy/ -run=^$
+
+bench-lambda:
+	BENCH_MEMORY_LIMIT_MB=96 go test -bench=. -benchmem ./internal/policy/ -run=^$
 
 run-all: format sort-imports test

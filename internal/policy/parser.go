@@ -6,6 +6,7 @@ import (
 
 	"github.com/awalterschulze/gographviz"
 	"github.com/awalterschulze/gographviz/ast"
+	"github.com/casbin/govaluate"
 )
 
 type DotParser struct{}
@@ -24,7 +25,8 @@ func (DotParser) Parse(ctx context.Context, dot string) (*Graph, error) {
 	if err = validateHasStart(nodes); err != nil {
 		return nil, err
 	}
-	return &Graph{Nodes: nodes, Edges: edges, Start: StartNodeID}, nil
+	adjList := buildAdjList(edges)
+	return &Graph{Nodes: nodes, Edges: edges, AdjList: adjList, Start: StartNodeID}, nil
 }
 
 func buildGraphFromAST(astGraph *ast.Graph) (map[string]*Node, []*Edge) {
@@ -44,10 +46,18 @@ func buildGraphFromAST(astGraph *ast.Graph) (map[string]*Node, []*Edge) {
 	return nodes, edges
 }
 
+func buildAdjList(edges []*Edge) map[string][]*Edge {
+	adj := make(map[string][]*Edge)
+	for _, e := range edges {
+		adj[e.From] = append(adj[e.From], e)
+	}
+	return adj
+}
+
 func nodeFromStmt(stmt *ast.NodeStmt) *Node {
 	id := string(stmt.NodeID.ID)
 	result := extractResultFromNodeAttrs(stmt.Attrs)
-	return &Node{ID: id, Result: result}
+	return &Node{ID: id, Result: result, ParsedResult: preParseResult(result)}
 }
 
 func extractResultFromNodeAttrs(attrs ast.AttrList) string {
@@ -67,7 +77,14 @@ func edgeFromStmt(stmt *ast.EdgeStmt) (*Edge, bool) {
 	from := string(stmt.Source.GetID())
 	to := string(stmt.EdgeRHS[0].Destination.GetID())
 	cond := extractCondFromEdgeAttrs(stmt.Attrs)
-	return &Edge{From: from, To: to, Cond: cond}, true
+
+	valid := cond == "" || isValidCond(cond)
+	var compiled *govaluate.EvaluableExpression
+	if valid && cond != "" {
+		compiled, _ = govaluate.NewEvaluableExpression(cond)
+	}
+
+	return &Edge{From: from, To: to, Cond: cond, ValidCond: valid, CompiledCond: compiled}, true
 }
 
 func extractCondFromEdgeAttrs(attrs ast.AttrList) string {
